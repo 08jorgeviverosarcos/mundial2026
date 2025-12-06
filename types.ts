@@ -28,6 +28,7 @@ export interface Match {
   stage: 'Group' | 'Round of 32' | 'Round of 16' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Third Place';
   group?: string; // Only for group stage (e.g., "A")
   date: LocalizedString; // Formatted date string
+  time?: string; // Match time (e.g. "13:00")
   stadium: Stadium;
   commentary?: string;
   winnerId?: string | null; // For knockouts
