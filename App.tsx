@@ -7,6 +7,7 @@ import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
 import { simulateMatchWithAI, simulateBatchMatches } from './services/geminiService';
 import { useLanguage } from './contexts/LanguageContext';
+import { logAppEvent } from './services/firebase';
 
 enum AppState {
   SELECT_TEAM,
@@ -40,6 +41,7 @@ export default function App() {
                 setUserTeam(parsed.userTeam);
                 setAppState(parsed.appState !== undefined ? parsed.appState : AppState.SELECT_TEAM);
                 loaded = true;
+                logAppEvent('session_start', { loaded_from_storage: true });
             }
         } catch (e) {
             console.error("Error loading saved simulation:", e);
@@ -57,8 +59,19 @@ export default function App() {
           initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
         });
         setStandings(initialStandings);
+        logAppEvent('session_start', { loaded_from_storage: false });
     }
   }, []);
+
+  // Track page views when state changes
+  useEffect(() => {
+    const screenName = 
+        appState === AppState.SELECT_TEAM ? 'select_team' : 
+        appState === AppState.GROUP_STAGE ? 'group_stage' : 
+        'knockout_stage';
+    
+    logAppEvent('screen_view', { firebase_screen: screenName });
+  }, [appState]);
 
   // Auto-Save Effect
   useEffect(() => {
@@ -76,9 +89,11 @@ export default function App() {
   const handleSelectTeam = (team: Team) => {
     setUserTeam(team);
     setAppState(AppState.GROUP_STAGE);
+    logAppEvent('select_content', { content_type: 'team', item_id: team.id });
   };
 
   const handleRestart = () => {
+      logAppEvent('restart_simulation');
       // Clear Storage
       localStorage.removeItem(STORAGE_KEY);
       
@@ -219,6 +234,7 @@ export default function App() {
   };
 
   const handleUpdateScore = (matchId: string, homeScore: number, awayScore: number) => {
+      logAppEvent('update_score', { match_id: matchId, home: homeScore, away: awayScore });
       const matchIndex = matches.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
 
@@ -274,6 +290,7 @@ export default function App() {
   const simulateMatch = async (match: Match) => {
     if (!match.homeTeamId || !match.awayTeamId) return;
     setSimulatingId(match.id);
+    logAppEvent('simulate_match_start', { match_id: match.id, stage: match.stage });
 
     const homeTeam = TEAMS[match.homeTeamId];
     const awayTeam = TEAMS[match.awayTeamId];
@@ -295,6 +312,7 @@ export default function App() {
     });
 
     setMatches(updatedMatches);
+    logAppEvent('simulate_match_complete', { match_id: match.id });
 
     if (match.stage === 'Group') {
         setStandings(calculateStandingsFromScratch(updatedMatches));
@@ -413,6 +431,7 @@ export default function App() {
 
 
   const finishGroupStage = () => {
+    logAppEvent('finish_group_stage');
     // Generate Bracket using Shared Logic
     const pairings = calculateR32Pairings(standings);
     
@@ -505,6 +524,7 @@ export default function App() {
       if (unfinished.length === 0) return;
 
       setSimulatingId('BATCH'); 
+      logAppEvent('batch_simulate_group_start');
 
       const results = await simulateBatchMatches(unfinished, TEAMS, language);
 
@@ -525,6 +545,7 @@ export default function App() {
       setMatches(updatedMatches);
       setStandings(calculateStandingsFromScratch(updatedMatches));
       setSimulatingId(null);
+      logAppEvent('batch_simulate_group_complete');
   };
 
   const handleSimulatePhase = async (stage: Match['stage']) => {
@@ -532,6 +553,7 @@ export default function App() {
       if (unfinished.length === 0) return;
 
       setSimulatingId(`BATCH_${stage}`);
+      logAppEvent('batch_simulate_phase_start', { stage });
 
       const results = await simulateBatchMatches(unfinished, TEAMS, language);
 
@@ -552,6 +574,7 @@ export default function App() {
 
       setMatches(updatedMatches);
       setSimulatingId(null);
+      logAppEvent('batch_simulate_phase_complete', { stage });
   };
 
   const Navbar = () => (
@@ -598,7 +621,10 @@ export default function App() {
             {appState === AppState.KNOCKOUT_STAGE && (
                  <>
                  <button 
-                    onClick={() => setAppState(AppState.GROUP_STAGE)}
+                    onClick={() => {
+                        setAppState(AppState.GROUP_STAGE);
+                        logAppEvent('nav_view_groups');
+                    }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-teko text-xl tracking-wide transition-colors mr-2"
                 >
                     {t.viewGroups}
@@ -614,13 +640,13 @@ export default function App() {
             
             <div className="flex bg-white/10 rounded-lg p-1">
                 <button 
-                    onClick={() => setLanguage('en')}
+                    onClick={() => { setLanguage('en'); logAppEvent('change_language', { lang: 'en' }); }}
                     className={`px-2 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     EN
                 </button>
                 <button 
-                    onClick={() => setLanguage('es')}
+                    onClick={() => { setLanguage('es'); logAppEvent('change_language', { lang: 'es' }); }}
                     className={`px-2 py-1 text-xs font-bold rounded ${language === 'es' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     ES
@@ -634,8 +660,8 @@ export default function App() {
     return (
         <>
             <div className="absolute top-4 right-4 z-50 flex bg-white/10 rounded-lg p-1 backdrop-blur-md">
-                <button onClick={() => setLanguage('en')} className={`px-2 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>EN</button>
-                <button onClick={() => setLanguage('es')} className={`px-2 py-1 text-xs font-bold rounded ${language === 'es' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
+                <button onClick={() => { setLanguage('en'); logAppEvent('change_language', { lang: 'en' }); }} className={`px-2 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>EN</button>
+                <button onClick={() => { setLanguage('es'); logAppEvent('change_language', { lang: 'es' }); }} className={`px-2 py-1 text-xs font-bold rounded ${language === 'es' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
             </div>
             <TeamSelector onSelect={handleSelectTeam} />
         </>

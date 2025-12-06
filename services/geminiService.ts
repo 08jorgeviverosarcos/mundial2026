@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Team, Match } from "../types";
+import { logAppEvent } from "./firebase";
 
 // Safe access to API Key preventing ReferenceError if process is not defined
 const getApiKey = () => {
@@ -105,8 +106,9 @@ export const simulateMatchWithAI = async (
     }
     throw new Error("Invalid format");
 
-  } catch (error) {
-    console.error("Gemini Simulation Failed", error);
+  } catch (error: any) {
+    console.warn("Gemini Simulation Failed (using fallback):", error.message);
+    logAppEvent('simulation_error', { stage, error: error.message });
     return fallbackSimulation(homeTeam.rating, awayTeam.rating, stage, language);
   }
 };
@@ -191,8 +193,10 @@ export const simulateBatchMatches = async (
 
     return results;
 
-  } catch (error) {
-    console.error("Batch Simulation Failed", error);
+  } catch (error: any) {
+    console.warn("Batch Simulation Failed (using fallback):", error.message);
+    logAppEvent('batch_simulation_error', { count: matches.length, error: error.message });
+    
     // Fallback for batch
     return matches.map(m => ({
       matchId: m.id,
