@@ -1,0 +1,62 @@
+export const TRANSLATIONS = {
+  en: {
+    title: "FIFA 26 Simulator",
+    subtitle: "Road to Glory Simulator",
+    selectTeam: "Select your nation to begin the simulation",
+    yourTeam: "Your Team",
+    quickSim: "Quick Sim Group",
+    goToKnockouts: "Go to Knockouts",
+    groupStage: "Group Stage",
+    matchSchedule: "Match Schedule",
+    simulate: "Simulate Match",
+    simulating: "Simulating...",
+    vs: "VS",
+    mp: "MP",
+    w: "W",
+    d: "D",
+    l: "L",
+    gd: "GD",
+    pts: "Pts",
+    group: "Group",
+    match: "Match",
+    stages: {
+        'Group': 'Group Stage',
+        'Round of 32': 'Round of 32',
+        'Round of 16': 'Round of 16',
+        'Quarter-Final': 'Quarter-Final',
+        'Semi-Final': 'Semi-Final',
+        'Final': 'Final',
+        'Third Place': 'Third Place'
+    }
+  },
+  es: {
+    title: "Simulador FIFA 26",
+    subtitle: "Camino a la Gloria",
+    selectTeam: "Selecciona tu nación para comenzar",
+    yourTeam: "Tu Equipo",
+    quickSim: "Simular Grupo",
+    goToKnockouts: "Ir a Eliminatorias",
+    groupStage: "Fase de Grupos",
+    matchSchedule: "Calendario de Partidos",
+    simulate: "Simular",
+    simulating: "Simulando...",
+    vs: "VS",
+    mp: "PJ",
+    w: "G",
+    d: "E",
+    l: "P",
+    gd: "DG",
+    pts: "Pts",
+    group: "Grupo",
+    match: "Partido",
+    stages: {
+        'Group': 'Fase de Grupos',
+        'Round of 32': 'Dieciseisavos',
+        'Round of 16': 'Octavos de Final',
+        'Quarter-Final': 'Cuartos de Final',
+        'Semi-Final': 'Semifinal',
+        'Final': 'Final',
+        'Third Place': 'Tercer Puesto'
+    }
+  }
+};

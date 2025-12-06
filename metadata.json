@@ -1,0 +1,5 @@
+{
+  "name": "FIFA 26 Simulator",
+  "description": "A high-fidelity visual simulator for the 2026 World Cup, featuring realistic group stages, bracket progression, and AI-powered match simulation.",
+  "requestFramePermissions": []
+}
