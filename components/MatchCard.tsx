@@ -46,11 +46,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
   return (
     <div className={`relative overflow-visible group rounded-xl border ${isUserMatch ? 'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/10'} bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3 min-w-[300px]`}>
       
-      {/* Edit Button (Visible on hover) */}
+      {/* Edit Button (Always Visible) */}
       {onUpdateScore && home && away && !isEditing && (
           <button 
             onClick={handleEditClick}
-            className="absolute top-2 right-2 p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            className="absolute top-2 right-2 p-1 text-gray-500 hover:text-white transition-colors z-10"
             title={t.edit}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
