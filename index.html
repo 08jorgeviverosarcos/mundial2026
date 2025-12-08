@@ -3,9 +3,58 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FIFA 26 Simulator</title>
+    
+    <!-- Primary SEO -->
+    <title>Simulador Mundial FIFA 2026 - Predicciones con IA | World Cup Simulator</title>
+    <meta name="title" content="Simulador Mundial FIFA 2026 - Predicciones con IA | World Cup Simulator" />
+    <meta name="description" content="Simula el Mundial FIFA 2026 completo. Predice resultados con IA, genera la fase de grupos, el fixture y el cuadro de eliminatorias. ¡Juega y descubre quién será el campeón en México, EE.UU. y Canadá!" />
+    <meta name="keywords" content="FIFA 2026, Simulador Mundial, World Cup Simulator, Predicciones Futbol, Bracket Creator, Fixture 2026, IA Futbol, Mexico 2026, USA 2026, Canada 2026, Pronostico Deportivo" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English, Spanish" />
+    <meta name="author" content="FIFA 26 Sim" />
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3464238874870656" crossorigin="anonymous"></script>
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fifa26simulator.app/" />
+    <meta property="og:title" content="Simulador Mundial 2026 con IA" />
+    <meta property="og:description" content="Crea tu propia predicción del Mundial 2026. Simula fase de grupos y eliminatorias con inteligencia artificial." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="FIFA World Cup 2026 AI Simulator" />
+    <meta property="twitter:description" content="Simulate the entire 2026 World Cup tournament. Predict matches, view standings, and create your bracket." />
+    <meta property="twitter:image" content="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1200&auto=format&fit=crop" />
+
+    <!-- Mobile Theme -->
+    <meta name="theme-color" content="#0f172a" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Structured Data (JSON-LD) for Google Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "FIFA 2026 World Cup Simulator",
+      "alternateName": "Simulador Mundial 2026",
+      "applicationCategory": "SportsApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Interactive web application to simulate the 2026 FIFA World Cup results using AI predictions for group stages and knockouts.",
+      "featureList": "Group Stage Simulation, Knockout Bracket Generator, AI Match Prediction, Bilingual Support",
+      "keywords": "World Cup 2026, Simulator, Football, Soccer, AI"
+    }
+    </script>
+
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -28,16 +77,15 @@
         border-radius: 4px;
       }
     </style>
-  <script type="importmap">
+ <script type="module" src="/index.tsx"></script>
+<script type="importmap">
 {
   "imports": {
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "firebase/app": "https://esm.run/firebase@10.12.0/app",
-    "firebase/analytics": "https://esm.run/firebase@10.12.0/analytics",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+    "react": "https://aistudiocdn.com/react@^19.2.1"
   }
 }
 </script>

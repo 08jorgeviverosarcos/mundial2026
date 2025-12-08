@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TEAMS, GROUPS, generateGroupSchedule, STADIUMS, findStadium } from './constants';
 import { Team, Match, GroupStanding, LocalizedString } from './types';
 import { TeamSelector } from './components/TeamSelector';
 import { GroupTable } from './components/GroupTable';
 import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
+import { AdBanner } from './components/AdBanner'; // Import AdBanner
 import { simulateMatchWithAI, simulateBatchMatches } from './services/geminiService';
 import { useLanguage } from './contexts/LanguageContext';
 import { logAppEvent } from './services/firebase';
@@ -25,7 +26,26 @@ export default function App() {
   const [standings, setStandings] = useState<Record<string, GroupStanding>>({});
   const [simulatingId, setSimulatingId] = useState<string | null>(null);
 
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterGroup, setFilterGroup] = useState('ALL');
+  const [filterTeam, setFilterTeam] = useState('ALL');
+
   const hasKnockouts = matches.some(m => m.stage !== 'Group');
+  const unfinishedGroupMatches = matches.some(m => m.stage === 'Group' && !m.isFinished);
+
+  // Dynamic SEO Title Update
+  useEffect(() => {
+    if (language === 'es') {
+      document.title = "Simulador Mundial 2026 - Predicciones IA | Fixture y Grupos";
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute("content", "Simula el Mundial FIFA 2026. Predice resultados con IA, tabla de posiciones y eliminatorias. ¡Juega y descubre al campeón!");
+    } else {
+      document.title = "FIFA 2026 World Cup Simulator - AI Predictions | Bracket & Groups";
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute("content", "Simulate the FIFA World Cup 2026. Predict matches with AI, view group standings and bracket. Play now and find the champion!");
+    }
+  }, [language]);
 
   // Initialize Data (Load from Storage or Default)
   useEffect(() => {
@@ -86,6 +106,34 @@ export default function App() {
     }
   }, [matches, standings, userTeam, appState]);
 
+  // Computed Values for UI
+  const allTeamsList = useMemo(() => {
+    return Object.values(TEAMS).sort((a, b) => a.name[language].localeCompare(b.name[language]));
+  }, [language]);
+
+  const filteredMatches = useMemo(() => {
+    return matches.filter(m => {
+        if (m.stage !== 'Group') return false;
+
+        // Group Filter
+        if (filterGroup !== 'ALL' && m.group !== filterGroup) return false;
+
+        // Team Filter (Dropdown)
+        if (filterTeam !== 'ALL' && m.homeTeamId !== filterTeam && m.awayTeamId !== filterTeam) return false;
+
+        // Search Query (Text)
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const homeName = m.homeTeamId ? TEAMS[m.homeTeamId].name[language].toLowerCase() : '';
+            const awayName = m.awayTeamId ? TEAMS[m.awayTeamId].name[language].toLowerCase() : '';
+            return homeName.includes(q) || awayName.includes(q);
+        }
+
+        return true;
+    });
+  }, [matches, filterGroup, filterTeam, searchQuery, language]);
+
+
   const handleSelectTeam = (team: Team) => {
     setUserTeam(team);
     setAppState(AppState.GROUP_STAGE);
@@ -107,6 +155,11 @@ export default function App() {
         initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
       });
       setStandings(initialStandings);
+      
+      // Reset filters
+      setSearchQuery('');
+      setFilterGroup('ALL');
+      setFilterTeam('ALL');
   };
 
   const calculateStandingsFromScratch = (currentMatches: Match[]) => {
@@ -430,6 +483,104 @@ export default function App() {
   }, [matches, appState]);
 
 
+  const autoSimulateGroup = async () => {
+    const unfinishedMatches = matches.filter(m => m.stage === 'Group' && !m.isFinished);
+    if (unfinishedMatches.length === 0) return;
+
+    setSimulatingId('BATCH');
+    logAppEvent('batch_simulate_group_start', { count: unfinishedMatches.length });
+
+    const results = await simulateBatchMatches(unfinishedMatches, TEAMS, language);
+
+    let updatedMatches = matches.map(m => {
+        const res = results.find(r => r.matchId === m.id);
+        if (res) {
+            return {
+                ...m,
+                homeScore: res.homeScore,
+                awayScore: res.awayScore,
+                isFinished: true,
+                commentary: res.commentary,
+                winnerId: res.homeScore > res.awayScore ? m.homeTeamId : (res.awayScore > res.homeScore ? m.awayTeamId : null)
+            };
+        }
+        return m;
+    });
+
+    // Recalculate standings immediately based on the new results
+    const newStandings = calculateStandingsFromScratch(updatedMatches);
+    setStandings(newStandings);
+
+    // If we are simulating group matches AFTER knockouts have generated, we must update the bracket
+    if (hasKnockouts) {
+         const r32Pairings = calculateR32Pairings(newStandings);
+         
+         updatedMatches = updatedMatches.map(m => {
+             // Only check R32 matches for updates
+             if (m.stage === 'Round of 32') {
+                 const pairing = r32Pairings.find(p => p.id === m.id);
+                 if (pairing) {
+                     // Check if teams changed due to new standings
+                     if (m.homeTeamId !== pairing.homeTeamId || m.awayTeamId !== pairing.awayTeamId) {
+                         return {
+                             ...m,
+                             homeTeamId: pairing.homeTeamId,
+                             awayTeamId: pairing.awayTeamId,
+                             // Reset match if teams changed
+                             homeScore: null,
+                             awayScore: null,
+                             isFinished: false,
+                             winnerId: null,
+                             commentary: undefined
+                         };
+                     }
+                 }
+             }
+             return m;
+         });
+    }
+
+    setMatches(updatedMatches);
+    setSimulatingId(null);
+    logAppEvent('batch_simulate_group_complete');
+  };
+
+  const handleSimulatePhase = async (stage: Match['stage']) => {
+      // Only simulate matches that are ready (have both teams) and not finished
+      const matchesToSimulate = matches.filter(m => m.stage === stage && !m.isFinished && m.homeTeamId && m.awayTeamId);
+      
+      if (matchesToSimulate.length === 0) return;
+
+      setSimulatingId(`BATCH_${stage}`);
+      logAppEvent('batch_simulate_phase_start', { stage, count: matchesToSimulate.length });
+
+      const results = await simulateBatchMatches(matchesToSimulate, TEAMS, language);
+
+      const updatedMatches = matches.map(m => {
+          const res = results.find(r => r.matchId === m.id);
+          if (res) {
+               // Determine winner strictly for update (though logic is in result too usually)
+               const winnerId = res.homeScore > res.awayScore 
+                    ? m.homeTeamId 
+                    : (res.awayScore > res.homeScore ? m.awayTeamId : null);
+
+               return {
+                  ...m,
+                  homeScore: res.homeScore,
+                  awayScore: res.awayScore,
+                  isFinished: true,
+                  commentary: res.commentary,
+                  winnerId: winnerId
+              };
+          }
+          return m;
+      });
+
+      setMatches(updatedMatches);
+      setSimulatingId(null);
+      logAppEvent('batch_simulate_phase_complete', { stage });
+  };
+
   const finishGroupStage = () => {
     logAppEvent('finish_group_stage');
     // Generate Bracket using Shared Logic
@@ -519,91 +670,27 @@ export default function App() {
     setAppState(AppState.KNOCKOUT_STAGE);
   };
 
-  const autoSimulateGroup = async () => {
-      const unfinished = matches.filter(m => m.stage === 'Group' && !m.isFinished);
-      if (unfinished.length === 0) return;
-
-      setSimulatingId('BATCH'); 
-      logAppEvent('batch_simulate_group_start');
-
-      const results = await simulateBatchMatches(unfinished, TEAMS, language);
-
-      const updatedMatches = matches.map(m => {
-          const res = results.find(r => r.matchId === m.id);
-          if (res) {
-              return { 
-                  ...m, 
-                  isFinished: true, 
-                  homeScore: res.homeScore, 
-                  awayScore: res.awayScore, 
-                  commentary: res.commentary 
-              };
-          }
-          return m;
-      });
-
-      setMatches(updatedMatches);
-      setStandings(calculateStandingsFromScratch(updatedMatches));
-      setSimulatingId(null);
-      logAppEvent('batch_simulate_group_complete');
-  };
-
-  const handleSimulatePhase = async (stage: Match['stage']) => {
-      const unfinished = matches.filter(m => m.stage === stage && !m.isFinished && m.homeTeamId && m.awayTeamId);
-      if (unfinished.length === 0) return;
-
-      setSimulatingId(`BATCH_${stage}`);
-      logAppEvent('batch_simulate_phase_start', { stage });
-
-      const results = await simulateBatchMatches(unfinished, TEAMS, language);
-
-      const updatedMatches = matches.map(m => {
-          const res = results.find(r => r.matchId === m.id);
-          if (res) {
-              return { 
-                  ...m, 
-                  isFinished: true, 
-                  homeScore: res.homeScore, 
-                  awayScore: res.awayScore, 
-                  commentary: res.commentary,
-                  winnerId: res.homeScore > res.awayScore ? m.homeTeamId : m.awayTeamId
-              };
-          }
-          return m;
-      });
-
-      setMatches(updatedMatches);
-      setSimulatingId(null);
-      logAppEvent('batch_simulate_phase_complete', { stage });
-  };
-
   const Navbar = () => (
-    <nav className="h-16 border-b border-white/10 bg-slate-900/80 backdrop-blur sticky top-0 z-50 flex items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-            <h1 className="font-teko text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">
-                {t.title}
+    <nav className="border-b border-white/10 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between px-3 py-3 md:px-6 md:h-16 shadow-lg">
+        {/* Left: Title & Team */}
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <h1 className="font-teko text-xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 leading-none">
+                <span className="md:hidden">FIFA 26</span>
+                <span className="hidden md:inline">{t.title}</span>
             </h1>
             {userTeam && (
-                <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                    <span className="text-xs text-gray-400 uppercase">{t.yourTeam}:</span>
-                    <img src={userTeam.flag} className="w-6 h-4 rounded" alt="flag" />
-                    <span className="font-bold text-sm text-yellow-400">{userTeam.code}</span>
+                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-white/10 shrink-0">
+                    <span className="hidden lg:inline text-xs text-gray-400 uppercase">{t.yourTeam}:</span>
+                    <img src={userTeam.flag} className="w-5 h-3.5 md:w-6 md:h-4 rounded" alt="flag" />
+                    <span className="font-bold text-xs md:text-sm text-yellow-400">{userTeam.code}</span>
                 </div>
             )}
         </div>
         
-        <div className="flex items-center gap-4">
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
             {appState === AppState.GROUP_STAGE && (
                 <>
-                {!hasKnockouts && (
-                    <button 
-                        onClick={autoSimulateGroup}
-                        disabled={simulatingId !== null}
-                        className="hidden md:block px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-teko text-xl tracking-wide transition-colors disabled:opacity-50"
-                    >
-                        {simulatingId === 'BATCH' ? t.simulating : t.quickSim}
-                    </button>
-                )}
                 <button 
                     onClick={() => {
                         if (hasKnockouts) {
@@ -612,9 +699,10 @@ export default function App() {
                             finishGroupStage();
                         }
                     }}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-teko text-xl tracking-wide transition-colors"
+                    className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 hover:bg-green-500 rounded font-teko text-lg md:text-xl tracking-wide transition-colors shadow-lg shadow-green-900/20"
                 >
-                    {t.goToKnockouts}
+                     <span className="md:hidden">{language === 'en' ? 'Knockouts' : 'Fase Final'}</span>
+                     <span className="hidden md:inline">{t.goToKnockouts}</span>
                 </button>
                 </>
             )}
@@ -625,29 +713,34 @@ export default function App() {
                         setAppState(AppState.GROUP_STAGE);
                         logAppEvent('nav_view_groups');
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-teko text-xl tracking-wide transition-colors mr-2"
+                    className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-600 hover:bg-blue-500 rounded font-teko text-lg md:text-xl tracking-wide transition-colors"
                 >
-                    {t.viewGroups}
+                    <span className="md:hidden">{language === 'en' ? 'Groups' : 'Grupos'}</span>
+                    <span className="hidden md:inline">{t.viewGroups}</span>
                 </button>
                  <button 
                     onClick={handleRestart}
-                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded font-teko text-xl tracking-wide transition-colors"
+                    className="p-1.5 md:px-4 md:py-2 bg-white/10 hover:bg-white/20 rounded font-teko text-lg md:text-xl tracking-wide transition-colors"
+                    title="Restart"
                 >
-                    Restart
+                    <span className="hidden md:inline">Restart</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:hidden">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
                 </button>
                 </>
             )}
             
-            <div className="flex bg-white/10 rounded-lg p-1">
+            <div className="flex bg-white/10 rounded-lg p-0.5 md:p-1">
                 <button 
                     onClick={() => { setLanguage('en'); logAppEvent('change_language', { lang: 'en' }); }}
-                    className={`px-2 py-1 text-xs font-bold rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
+                    className={`px-2 py-0.5 md:px-2 md:py-1 text-[10px] md:text-xs font-bold rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     EN
                 </button>
                 <button 
                     onClick={() => { setLanguage('es'); logAppEvent('change_language', { lang: 'es' }); }}
-                    className={`px-2 py-1 text-xs font-bold rounded ${language === 'es' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
+                    className={`px-2 py-0.5 md:px-2 md:py-1 text-[10px] md:text-xs font-bold rounded ${language === 'es' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}
                 >
                     ES
                 </button>
@@ -672,17 +765,38 @@ export default function App() {
     <div className="min-h-screen bg-slate-900 text-white flex flex-col relative">
       <Navbar />
 
-      <main className="flex-1 overflow-hidden relative">
-        {simulatingId === 'BATCH' && (
-            <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <h2 className="text-3xl font-teko text-white animate-pulse">{t.simulating}</h2>
-            </div>
-        )}
+      {/* Ad Banner - Top Placement */}
+      <div className="max-w-7xl mx-auto px-6 w-full">
+         <AdBanner />
+      </div>
 
+      {/* FIXED Loader Overlay: Outside of main to cover viewport and block interaction */}
+      {simulatingId === 'BATCH' && (
+          <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center touch-none h-screen w-screen p-4">
+              {/* Visual Feedback first (Priority) */}
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <h2 className="text-3xl font-teko text-white animate-pulse mb-2">{t.simulating}</h2>
+              <p className="text-gray-400 text-sm mb-8 animate-pulse text-center">
+                  {language === 'es' ? 'Generando predicciones con IA... Por favor espera.' : 'Generating AI predictions... Please wait.'}
+              </p>
+
+              {/* Ad Container with Context */}
+              <div className="w-full max-w-md bg-white/5 rounded-lg p-4 border border-white/10 flex flex-col items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+                      {language === 'es' ? 'Patrocinado' : 'Sponsored'}
+                  </span>
+                  {/* Reuse AdBanner but allow it to fill width of this container */}
+                  <AdBanner className="my-0 w-full" />
+              </div>
+          </div>
+      )}
+
+      <main className="flex-1 overflow-hidden relative">
         {appState === AppState.GROUP_STAGE && (
-            <div className="h-full overflow-y-auto p-6">
+            // Toggle overflow based on simulating state to prevent scrolling
+            <div className={`h-full p-6 ${simulatingId === 'BATCH' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                 <div className="max-w-7xl mx-auto">
+                    {/* Groups Grid */}
                     <h2 className="text-4xl font-teko text-white mb-6 border-l-4 border-blue-500 pl-4">{t.groupStage}</h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
@@ -691,42 +805,123 @@ export default function App() {
                                 key={group.id} 
                                 group={group} 
                                 standings={standings} 
-                                teams={TEAMS}
+                                teams={TEAMS} 
                                 userTeamId={userTeam?.id || null}
                             />
                         ))}
                     </div>
+                    
+                    {/* Ad Banner - Middle Placement */}
+                    <AdBanner className="mb-8" />
 
-                    <h2 className="text-4xl font-teko text-white mb-6 border-l-4 border-yellow-500 pl-4">{t.matchSchedule}</h2>
+                    {/* Match Schedule with Filters */}
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 gap-4 border-l-4 border-yellow-500 pl-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                            <h2 className="text-4xl font-teko text-white leading-none">{t.matchSchedule}</h2>
+                             {unfinishedGroupMatches && (
+                                <button 
+                                    onClick={autoSimulateGroup}
+                                    disabled={simulatingId !== null}
+                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded font-teko text-lg tracking-wide transition-colors disabled:opacity-50 shadow-lg shadow-blue-900/20 flex items-center gap-2 whitespace-nowrap"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                                    </svg>
+                                    {simulatingId === 'BATCH' ? t.simulating : t.quickSim}
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Filters Toolbar */}
+                        <div className="flex flex-wrap gap-2 items-center bg-slate-800/50 p-2 rounded-lg border border-white/10">
+                            {/* Search */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder={t.searchPlaceholder} 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-black/40 border border-white/10 text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 w-40 placeholder-gray-500"
+                                />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-2 top-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+
+                            {/* Group Filter */}
+                            <select 
+                                value={filterGroup}
+                                onChange={(e) => setFilterGroup(e.target.value)}
+                                className="bg-black/40 border border-white/10 text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                                <option value="ALL">{t.allGroups}</option>
+                                {GROUPS.map(g => (
+                                    <option key={g.id} value={g.id}>{t.group} {g.id}</option>
+                                ))}
+                            </select>
+
+                            {/* Team Filter */}
+                            <select 
+                                value={filterTeam}
+                                onChange={(e) => setFilterTeam(e.target.value)}
+                                className="bg-black/40 border border-white/10 text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer max-w-[150px]"
+                            >
+                                <option value="ALL">{t.allTeams}</option>
+                                {allTeamsList.map(team => (
+                                    <option key={team.id} value={team.id}>{team.name[language]}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {matches.filter(m => m.stage === 'Group').map(match => (
-                            <MatchCard 
-                                key={match.id} 
-                                match={match} 
-                                teams={TEAMS}
-                                userTeamId={userTeam?.id || null}
-                                onSimulate={hasKnockouts ? undefined : simulateMatch}
-                                onUpdateScore={handleUpdateScore}
-                                loading={simulatingId === match.id}
-                            />
-                        ))}
+                        {filteredMatches.length > 0 ? (
+                            filteredMatches.map(match => (
+                                <MatchCard 
+                                    key={match.id} 
+                                    match={match} 
+                                    teams={TEAMS}
+                                    userTeamId={userTeam?.id || null}
+                                    onSimulate={hasKnockouts ? undefined : simulateMatch}
+                                    onUpdateScore={handleUpdateScore}
+                                    loading={simulatingId === match.id}
+                                />
+                            ))
+                        ) : (
+                            <div className="col-span-full py-12 text-center bg-white/5 rounded-xl border border-dashed border-white/20">
+                                <p className="text-gray-400 text-lg">{t.noMatchesFound}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
         )}
 
         {appState === AppState.KNOCKOUT_STAGE && (
-             <Bracket 
-                matches={matches.filter(m => m.stage !== 'Group')}
-                teams={TEAMS}
-                userTeamId={userTeam?.id || null}
-                onSimulate={simulateMatch}
-                onUpdateScore={handleUpdateScore}
-                onSimulatePhase={handleSimulatePhase}
-                simulatingId={simulatingId}
-             />
+            <div className="flex flex-col h-full">
+                <div className="flex-1 overflow-auto">
+                    <Bracket 
+                        matches={matches.filter(m => m.stage !== 'Group')}
+                        teams={TEAMS}
+                        userTeamId={userTeam?.id || null}
+                        onSimulate={simulateMatch}
+                        onUpdateScore={handleUpdateScore}
+                        onSimulatePhase={handleSimulatePhase}
+                        simulatingId={simulatingId}
+                    />
+                </div>
+                {/* Ad Banner - Bottom Placement for Knockouts */}
+                <div className="shrink-0 px-6 bg-slate-900 border-t border-white/5">
+                    <AdBanner />
+                </div>
+            </div>
         )}
       </main>
+      
+      {/* Footer Version Indicator */}
+      <div className="absolute bottom-1 right-2 text-[10px] text-gray-600 font-mono pointer-events-none z-0">
+        v1.3.1-ads
+      </div>
     </div>
   );
 }

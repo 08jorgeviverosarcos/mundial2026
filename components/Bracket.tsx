@@ -40,12 +40,17 @@ export const Bracket: React.FC<BracketProps> = ({ matches, teams, userTeamId, on
                     <button
                         onClick={() => onSimulatePhase(stage)}
                         disabled={simulatingId !== null}
-                        className={`text-xs px-3 py-1 rounded border border-white/20 uppercase tracking-widest transition-colors font-bold
+                        className={`px-3 py-1 rounded font-teko text-lg tracking-wide transition-colors disabled:opacity-50 shadow-lg flex items-center gap-2 whitespace-nowrap
                             ${isPhaseSimulating 
-                                ? 'bg-yellow-600 text-white cursor-wait animate-pulse' 
-                                : 'bg-white/5 hover:bg-white/20 text-gray-300 hover:text-white'
-                            } disabled:opacity-50`}
+                                ? 'bg-yellow-600 shadow-yellow-900/20 cursor-wait animate-pulse text-white' 
+                                : 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/20 text-white'
+                            }`}
                     >
+                        {!isPhaseSimulating && (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                            </svg>
+                        )}
                         {isPhaseSimulating ? t.simulating : t.simPhase}
                     </button>
                 )}
