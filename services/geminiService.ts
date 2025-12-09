@@ -2,17 +2,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Team, Match } from "../types";
 import { logAppEvent } from "./firebase";
 
-// Safe access to API Key preventing ReferenceError if process is not defined
+// Access API Key directly - Vite will replace process.env.API_KEY with the string value
 const getApiKey = () => {
-  try {
-    // Check if process is defined to avoid ReferenceError in strict browser environments
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.API_KEY || '';
-    }
-    return '';
-  } catch (e) {
-    return '';
-  }
+  return process.env.API_KEY || '';
 };
 
 export interface SimulationResult {

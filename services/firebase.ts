@@ -1,33 +1,21 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, logEvent } from 'firebase/analytics';
 
-// Safely access env vars
-const getEnv = (key: string) => {
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-        return process.env[key];
-    }
-    return undefined;
-  } catch (e) {
-    return undefined;
-  }
-};
-
-// Configuration should be provided via environment variables in a real build environment.
+// Configuration provided via process.env (handled by Vite define)
 const firebaseConfig = {
-  apiKey: getEnv('FIREBASE_API_KEY'),
-  authDomain: getEnv('FIREBASE_AUTH_DOMAIN'),
-  projectId: getEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: getEnv('FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: getEnv('FIREBASE_MESSAGING_SENDER_ID'),
-  appId: getEnv('FIREBASE_APP_ID'),
-  measurementId: getEnv('FIREBASE_MEASUREMENT_ID')
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
 };
 
 let analytics: any = null;
 
 try {
-    // Check if at least apiKey is present before initializing to avoid errors in console if config is missing
+    // Check if apiKey is present (it will be replaced by string literal or undefined by Vite)
     if (firebaseConfig.apiKey) {
         const app = initializeApp(firebaseConfig);
         analytics = getAnalytics(app);
