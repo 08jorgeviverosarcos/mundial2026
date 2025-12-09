@@ -6,7 +6,7 @@ import { GroupTable } from './components/GroupTable';
 import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
 import { AdBanner } from './components/AdBanner'; // Import AdBanner
-import { simulateMatchWithAI, simulateBatchMatches } from './services/geminiService';
+import { simulateMatchWithAI, simulateBatchMatches } from './services/geminiService'; // Updated Import to Gemini
 import { useLanguage } from './contexts/LanguageContext';
 import { logAppEvent } from './services/firebase';
 
@@ -296,7 +296,6 @@ export default function App() {
           homeScore,
           awayScore,
           isFinished: true,
-          commentary: language === 'es' ? "Resultado editado." : "Result edited.",
           winnerId: homeScore > awayScore 
                     ? matches[matchIndex].homeTeamId 
                     : (awayScore > homeScore ? matches[matchIndex].awayTeamId : null)
@@ -328,8 +327,7 @@ export default function App() {
                               homeScore: null,
                               awayScore: null,
                               isFinished: false,
-                              winnerId: null,
-                              commentary: undefined
+                              winnerId: null
                           };
                       }
                   }
@@ -357,7 +355,6 @@ export default function App() {
           homeScore: result.homeScore,
           awayScore: result.awayScore,
           isFinished: true,
-          commentary: result.commentary,
           winnerId: result.homeScore > result.awayScore ? m.homeTeamId : (result.awayScore > result.homeScore ? m.awayTeamId : null)
         };
       }
@@ -500,7 +497,6 @@ export default function App() {
                 homeScore: res.homeScore,
                 awayScore: res.awayScore,
                 isFinished: true,
-                commentary: res.commentary,
                 winnerId: res.homeScore > res.awayScore ? m.homeTeamId : (res.awayScore > res.homeScore ? m.awayTeamId : null)
             };
         }
@@ -530,8 +526,7 @@ export default function App() {
                              homeScore: null,
                              awayScore: null,
                              isFinished: false,
-                             winnerId: null,
-                             commentary: undefined
+                             winnerId: null
                          };
                      }
                  }
@@ -569,7 +564,6 @@ export default function App() {
                   homeScore: res.homeScore,
                   awayScore: res.awayScore,
                   isFinished: true,
-                  commentary: res.commentary,
                   winnerId: winnerId
               };
           }
@@ -822,7 +816,7 @@ export default function App() {
                     <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 gap-4 border-l-4 border-yellow-500 pl-4">
                         <div className="flex flex-wrap items-center gap-4">
                             <h2 className="text-4xl font-teko text-white leading-none">{t.matchSchedule}</h2>
-                             {unfinishedGroupMatches && (
+                             {unfinishedGroupMatches ? (
                                 <button 
                                     onClick={autoSimulateGroup}
                                     disabled={simulatingId !== null}
@@ -832,6 +826,16 @@ export default function App() {
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
                                     </svg>
                                     {simulatingId === 'BATCH' ? t.simulating : t.quickSim}
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={handleRestart}
+                                    className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded font-teko text-lg tracking-wide transition-colors shadow-lg shadow-red-900/20 flex items-center gap-2 whitespace-nowrap"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    </svg>
+                                    {t.restart}
                                 </button>
                             )}
                         </div>

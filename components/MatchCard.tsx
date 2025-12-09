@@ -137,7 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
       <div className="min-h-[24px] flex items-center justify-center">
         {!isEditing && (
             match.isFinished ? (
-            <p className="text-xs text-center text-cyan-300 italic line-clamp-2 px-2">"{match.commentary}"</p>
+               <div className="h-2"></div> 
             ) : (
             home && away && onSimulate && (
                 <button 

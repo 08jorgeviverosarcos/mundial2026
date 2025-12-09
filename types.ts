@@ -30,7 +30,6 @@ export interface Match {
   date: LocalizedString; // Formatted date string
   time?: string; // Match time (e.g. "13:00")
   stadium: Stadium;
-  commentary?: string;
   winnerId?: string | null; // For knockouts
 }
 

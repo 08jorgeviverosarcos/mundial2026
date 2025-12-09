@@ -17,8 +17,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({ className, slotId = "1234567
     if (adRef.current && adRef.current.getAttribute('data-ad-status')) return;
 
     try {
-      // @ts-ignore
-      const adsbygoogle = window.adsbygoogle || [];
+      // Cast window to any to access adsbygoogle array
+      const adsbygoogle = (window as any).adsbygoogle || [];
       // Only push if we haven't already
       adsbygoogle.push({});
       initialized.current = true;
