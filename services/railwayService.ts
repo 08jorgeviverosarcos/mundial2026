@@ -91,17 +91,34 @@ export const simulateMatchWithAI = async (
         let awayScore = data.team2_score;
         let penaltyWinner: 'home' | 'away' | undefined;
 
-        // Handle Knockout Tie-Breaker
-        if (isKnockout && homeScore === awayScore && data.qualified_team) {
-            const winnerName = data.qualified_team.toLowerCase();
-            // We must compare against the name sent to API (Normalized) to ensure matching works
-            const homeNameNormalized = normalizeTeamName(homeTeam.name.en).toLowerCase();
+        // Handle Knockout Tie-Breaker Logic
+        // We rely on our local 'isKnockout' to ensure we force a result if needed
+        if (isKnockout && homeScore === awayScore) {
+            const qualifiedName = (data.qualified_team || '').toLowerCase();
+            const detailsWinner = (data.details?.winner || '').toLowerCase();
             
-            // If home team is the qualified one
-            if (winnerName.includes(homeNameNormalized) || homeNameNormalized.includes(winnerName)) {
+            // Normalize local names for comparison (e.g. USA -> United States) to match API behavior
+            const homeNameNormalized = normalizeTeamName(homeTeam.name.en).toLowerCase();
+            const awayNameNormalized = normalizeTeamName(awayTeam.name.en).toLowerCase();
+            
+            // Check Home Match
+            if (
+                (qualifiedName && (qualifiedName.includes(homeNameNormalized) || homeNameNormalized.includes(qualifiedName))) ||
+                (detailsWinner && detailsWinner.includes(homeNameNormalized))
+            ) {
                 penaltyWinner = 'home';
-            } else {
+            } 
+            // Check Away Match
+            else if (
+                (qualifiedName && (qualifiedName.includes(awayNameNormalized) || awayNameNormalized.includes(qualifiedName))) ||
+                (detailsWinner && detailsWinner.includes(awayNameNormalized))
+            ) {
                 penaltyWinner = 'away';
+            }
+            // Fallback: If API was ambiguous but it's a knockout draw, we MUST pick a winner 
+            // to avoid breaking the bracket UI.
+            else {
+                penaltyWinner = Math.random() > 0.5 ? 'home' : 'away';
             }
         }
 
@@ -152,7 +169,6 @@ export const simulateBatchMatches = async (
         const json = await response.json();
         
         // Handle if response is array or object wrapping array
-        // Updated to look for 'results' based on API feedback
         const data: ApiResponse[] = Array.isArray(json) ? json : (json.results || json.matches || []);
 
         if (!Array.isArray(data)) {
@@ -161,37 +177,51 @@ export const simulateBatchMatches = async (
         }
 
         // Map results back to matches strictly using INDEX.
-        // We assume the API returns results in the exact same order as the request payload.
         return matches.map((m, index) => {
             const result = data[index];
             const homeTeam = teams[m.homeTeamId!];
             const awayTeam = teams[m.awayTeamId!];
 
             if (!result) {
-                // Should not happen if API is consistent with array length, but safe fallback
                 return {
                     matchId: m.id,
                     ...fallbackSimulation(homeTeam.rating, awayTeam.rating, m.stage, language)
                 };
             }
 
-            // Direct assignment based on "team1" (sent) = "team1_score" (received)
             const homeScore = result.team1_score;
             const awayScore = result.team2_score;
             
             let penaltyWinner: 'home' | 'away' | undefined;
 
             // Handle Knockout Tie-Breaker
-            if (result.is_knockout && homeScore === awayScore && result.qualified_team) {
-                const winnerName = result.qualified_team.toLowerCase();
-                // Compare against normalized name used in API request
+            // Trust local stage definition for knockout status
+            const isKnockoutMatch = m.stage !== 'Group';
+
+            if (isKnockoutMatch && homeScore === awayScore) {
+                const qualifiedName = (result.qualified_team || '').toLowerCase();
+                const detailsWinner = (result.details?.winner || '').toLowerCase();
+
                 const homeNameNormalized = normalizeTeamName(homeTeam.name.en).toLowerCase();
+                const awayNameNormalized = normalizeTeamName(awayTeam.name.en).toLowerCase();
                 
-                // Determine who qualified based on name matching with the Home Team
-                if (winnerName.includes(homeNameNormalized) || homeNameNormalized.includes(winnerName)) {
+                // Check Home
+                if (
+                    (qualifiedName && (qualifiedName.includes(homeNameNormalized) || homeNameNormalized.includes(qualifiedName))) ||
+                    (detailsWinner && detailsWinner.includes(homeNameNormalized))
+                ) {
                     penaltyWinner = 'home';
-                } else {
+                } 
+                // Check Away
+                else if (
+                    (qualifiedName && (qualifiedName.includes(awayNameNormalized) || awayNameNormalized.includes(qualifiedName))) ||
+                    (detailsWinner && detailsWinner.includes(awayNameNormalized))
+                ) {
                     penaltyWinner = 'away';
+                } 
+                // Fallback: Ensure progression
+                else {
+                    penaltyWinner = Math.random() > 0.5 ? 'home' : 'away';
                 }
             }
 
