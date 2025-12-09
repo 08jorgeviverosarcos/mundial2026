@@ -28,6 +28,8 @@ interface ApiResponse {
 // Helper to normalize team names for the API (e.g., USA -> United States)
 const normalizeTeamName = (name: string): string => {
     if (name === 'USA') return 'United States';
+    if (name === 'Curacao') return 'Curaçao';
+    if (name === 'Cabo Verde') return 'Cape Verde';
     return name;
 };
 
