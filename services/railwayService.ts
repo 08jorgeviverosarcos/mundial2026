@@ -66,7 +66,6 @@ export const simulateMatchWithAI = async (
 
         const response = await fetch(`${API_BASE_URL}/predict-gemini`, {
             method: 'POST',
-            mode: 'cors',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
@@ -130,7 +129,6 @@ export const simulateBatchMatches = async (
 
         const response = await fetch(`${API_BASE_URL}/predict-batch-gemini`, {
             method: 'POST',
-            mode: 'cors',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'

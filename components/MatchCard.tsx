@@ -93,11 +93,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
 
       <div className="flex justify-between items-center py-2">
         {/* Home Team */}
-        <div className="flex flex-col items-center w-1/3 text-center">
+        <div className="flex flex-col items-center w-1/3 text-center px-1">
           {home ? (
             <>
               <img src={home.flag} alt={home.name[language]} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
-              <span className={`font-teko text-xl ${home.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{home.code}</span>
+              <span className={`font-teko text-lg leading-none ${home.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{home.name[language]}</span>
             </>
           ) : (
              <div className="w-10 h-7 bg-white/10 rounded animate-pulse"></div>
@@ -170,11 +170,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
         </div>
 
         {/* Away Team */}
-        <div className="flex flex-col items-center w-1/3 text-center">
+        <div className="flex flex-col items-center w-1/3 text-center px-1">
           {away ? (
             <>
               <img src={away.flag} alt={away.name[language]} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
-              <span className={`font-teko text-xl ${away.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{away.code}</span>
+              <span className={`font-teko text-lg leading-none ${away.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{away.name[language]}</span>
             </>
           ) : (
             <div className="w-10 h-7 bg-white/10 rounded animate-pulse"></div>
