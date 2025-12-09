@@ -7,7 +7,7 @@ interface MatchCardProps {
   teams: Record<string, Team>;
   userTeamId: string | null;
   onSimulate?: (match: Match) => void;
-  onUpdateScore?: (matchId: string, home: number, away: number) => void;
+  onUpdateScore?: (matchId: string, home: number, away: number, penaltyWinner?: string) => void;
   loading?: boolean;
 }
 
@@ -16,6 +16,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
   const [isEditing, setIsEditing] = useState(false);
   const [editHome, setEditHome] = useState(match.homeScore?.toString() || '0');
   const [editAway, setEditAway] = useState(match.awayScore?.toString() || '0');
+  const [editPenaltyWinner, setEditPenaltyWinner] = useState<string | null>(null);
 
   const home = match.homeTeamId ? teams[match.homeTeamId] : null;
   const away = match.awayTeamId ? teams[match.awayTeamId] : null;
@@ -26,22 +27,42 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
     ? `${t.group} ${match.group} - ${t.match}` 
     : t.stages[match.stage];
 
+  const handleEditClick = () => {
+      setEditHome(match.homeScore?.toString() || '0');
+      setEditAway(match.awayScore?.toString() || '0');
+      
+      // If currently tied and finished, set penalty winner from match.winnerId
+      if (match.stage !== 'Group' && match.isFinished && match.homeScore === match.awayScore && match.winnerId) {
+          setEditPenaltyWinner(match.winnerId);
+      } else {
+          setEditPenaltyWinner(null);
+      }
+      setIsEditing(true);
+  };
+
   const handleSave = () => {
     if (onUpdateScore) {
       const h = parseInt(editHome);
       const a = parseInt(editAway);
       if (!isNaN(h) && !isNaN(a)) {
-        onUpdateScore(match.id, h, a);
+        
+        // Validation: If Knockout and Tied, MUST have penalty winner selected
+        if (match.stage !== 'Group' && h === a && !editPenaltyWinner) {
+             alert(t.selectWinner); // Simple alert to enforce logic
+             return;
+        }
+
+        onUpdateScore(match.id, h, a, editPenaltyWinner || undefined);
         setIsEditing(false);
       }
     }
   };
 
-  const handleEditClick = () => {
-      setEditHome(match.homeScore?.toString() || '0');
-      setEditAway(match.awayScore?.toString() || '0');
-      setIsEditing(true);
-  };
+  const isKnockout = match.stage !== 'Group';
+  const hScore = parseInt(editHome);
+  const aScore = parseInt(editAway);
+  // Show penalty selector if editing, knockout stage, scores valid, and scores equal
+  const showPenaltySelector = isEditing && isKnockout && !isNaN(hScore) && !isNaN(aScore) && hScore === aScore;
 
   return (
     <div className={`relative overflow-visible group rounded-xl border ${isUserMatch ? 'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/10'} bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3 min-w-[300px]`}>
@@ -102,17 +123,45 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
                         className="w-12 h-10 bg-black/50 border border-white/20 rounded text-center font-teko text-2xl text-white focus:outline-none focus:border-blue-500"
                       />
                   </div>
-                  <div className="flex gap-1">
+                  
+                  {/* Tie Breaker Selector */}
+                  {showPenaltySelector && (
+                      <div className="flex flex-col items-center mt-1 bg-white/5 p-2 rounded w-full border border-yellow-500/30">
+                          <span className="text-[10px] text-yellow-500 uppercase font-bold mb-1 tracking-wider">{t.selectWinner}</span>
+                          <div className="flex gap-2 justify-center w-full">
+                              <button 
+                                  onClick={() => setEditPenaltyWinner(match.homeTeamId)}
+                                  className={`flex-1 px-1 py-1 text-[10px] font-bold rounded border transition-colors ${editPenaltyWinner === match.homeTeamId ? 'bg-green-600 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'border-white/10 text-gray-400 hover:bg-white/10'}`}
+                              >
+                                  {home?.code}
+                              </button>
+                              <button 
+                                  onClick={() => setEditPenaltyWinner(match.awayTeamId)}
+                                  className={`flex-1 px-1 py-1 text-[10px] font-bold rounded border transition-colors ${editPenaltyWinner === match.awayTeamId ? 'bg-green-600 border-green-400 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'border-white/10 text-gray-400 hover:bg-white/10'}`}
+                              >
+                                  {away?.code}
+                              </button>
+                          </div>
+                      </div>
+                  )}
+
+                  <div className="flex gap-1 mt-1">
                     <button onClick={handleSave} className="bg-green-600 hover:bg-green-500 text-white text-[10px] px-2 py-0.5 rounded uppercase">{t.save}</button>
                     <button onClick={() => setIsEditing(false)} className="bg-gray-600 hover:bg-gray-500 text-white text-[10px] px-2 py-0.5 rounded uppercase">{t.cancel}</button>
                   </div>
               </div>
           ) : (
             match.isFinished ? (
-                <div className="flex gap-2 text-3xl font-teko font-bold text-white">
-                <span>{match.homeScore}</span>
-                <span className="text-gray-500">-</span>
-                <span>{match.awayScore}</span>
+                <div className="flex gap-2 text-3xl font-teko font-bold text-white items-center">
+                    <span className={match.winnerId === match.homeTeamId && match.homeScore === match.awayScore ? "text-green-400" : ""}>
+                        {match.homeScore}
+                        {match.winnerId === match.homeTeamId && match.homeScore === match.awayScore && <span className="text-xs ml-1 align-top">(P)</span>}
+                    </span>
+                    <span className="text-gray-500">-</span>
+                    <span className={match.winnerId === match.awayTeamId && match.homeScore === match.awayScore ? "text-green-400" : ""}>
+                         {match.awayScore}
+                         {match.winnerId === match.awayTeamId && match.homeScore === match.awayScore && <span className="text-xs ml-1 align-top">(P)</span>}
+                    </span>
                 </div>
             ) : (
                 <span className="text-xl font-teko text-gray-500">{t.vs}</span>

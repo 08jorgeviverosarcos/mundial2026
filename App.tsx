@@ -6,7 +6,7 @@ import { GroupTable } from './components/GroupTable';
 import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
 import { AdBanner } from './components/AdBanner'; // Import AdBanner
-import { simulateMatchWithAI, simulateBatchMatches } from './services/geminiService'; // Updated Import to Gemini
+import { simulateMatchWithAI, simulateBatchMatches } from './services/railwayService'; // Updated Import to Railway
 import { useLanguage } from './contexts/LanguageContext';
 import { logAppEvent } from './services/firebase';
 
@@ -286,19 +286,36 @@ export default function App() {
     }));
   };
 
-  const handleUpdateScore = (matchId: string, homeScore: number, awayScore: number) => {
+  const handleUpdateScore = (matchId: string, homeScore: number, awayScore: number, penaltyWinnerId?: string) => {
       logAppEvent('update_score', { match_id: matchId, home: homeScore, away: awayScore });
       const matchIndex = matches.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
 
+      const currentMatch = matches[matchIndex];
+      let winnerId: string | null = null;
+
+      if (homeScore > awayScore) {
+          winnerId = currentMatch.homeTeamId;
+      } else if (awayScore > homeScore) {
+          winnerId = currentMatch.awayTeamId;
+      } else {
+          // Draw logic
+          if (currentMatch.stage !== 'Group') {
+              // Knockout: Must determine winner. 
+              // penaltyWinnerId comes from MatchCard selection.
+              // Fallback to existing winner if it's consistent with participants, otherwise null (waiting for user input)
+              winnerId = penaltyWinnerId || currentMatch.winnerId || null;
+          } else {
+              winnerId = null; // Group stage draw
+          }
+      }
+
       const updatedMatch = {
-          ...matches[matchIndex],
+          ...currentMatch,
           homeScore,
           awayScore,
           isFinished: true,
-          winnerId: homeScore > awayScore 
-                    ? matches[matchIndex].homeTeamId 
-                    : (awayScore > homeScore ? matches[matchIndex].awayTeamId : null)
+          winnerId: winnerId
       };
 
       let newMatches = [...matches];
@@ -350,12 +367,18 @@ export default function App() {
 
     const updatedMatches = matches.map(m => {
       if (m.id === match.id) {
+        let winnerId = null;
+        if (result.homeScore > result.awayScore) winnerId = m.homeTeamId;
+        else if (result.awayScore > result.homeScore) winnerId = m.awayTeamId;
+        else if (result.penaltyWinner === 'home') winnerId = m.homeTeamId;
+        else if (result.penaltyWinner === 'away') winnerId = m.awayTeamId;
+
         return {
           ...m,
           homeScore: result.homeScore,
           awayScore: result.awayScore,
           isFinished: true,
-          winnerId: result.homeScore > result.awayScore ? m.homeTeamId : (result.awayScore > result.homeScore ? m.awayTeamId : null)
+          winnerId: winnerId
         };
       }
       return m;
@@ -555,9 +578,11 @@ export default function App() {
           const res = results.find(r => r.matchId === m.id);
           if (res) {
                // Determine winner strictly for update (though logic is in result too usually)
-               const winnerId = res.homeScore > res.awayScore 
-                    ? m.homeTeamId 
-                    : (res.awayScore > res.homeScore ? m.awayTeamId : null);
+               let winnerId = null;
+               if (res.homeScore > res.awayScore) winnerId = m.homeTeamId;
+               else if (res.awayScore > res.homeScore) winnerId = m.awayTeamId;
+               else if (res.penaltyWinner === 'home') winnerId = m.homeTeamId;
+               else if (res.penaltyWinner === 'away') winnerId = m.awayTeamId;
 
                return {
                   ...m,
@@ -573,6 +598,23 @@ export default function App() {
       setMatches(updatedMatches);
       setSimulatingId(null);
       logAppEvent('batch_simulate_phase_complete', { stage });
+  };
+  
+  const handleRestartPhase = (stage: Match['stage']) => {
+      logAppEvent('restart_phase', { stage });
+      const updatedMatches = matches.map(m => {
+          if (m.stage === stage) {
+              return {
+                  ...m,
+                  homeScore: null,
+                  awayScore: null,
+                  isFinished: false,
+                  winnerId: null
+              };
+          }
+          return m;
+      });
+      setMatches(updatedMatches);
   };
 
   const finishGroupStage = () => {
@@ -915,6 +957,7 @@ export default function App() {
                         onSimulate={simulateMatch}
                         onUpdateScore={handleUpdateScore}
                         onSimulatePhase={handleSimulatePhase}
+                        onRestartPhase={handleRestartPhase}
                         simulatingId={simulatingId}
                     />
                 </div>

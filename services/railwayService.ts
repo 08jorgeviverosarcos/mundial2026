@@ -4,6 +4,7 @@ import { logAppEvent } from "./firebase";
 export interface SimulationResult {
   homeScore: number;
   awayScore: number;
+  penaltyWinner?: 'home' | 'away';
 }
 
 export interface BatchMatchResult extends SimulationResult {
@@ -36,6 +37,7 @@ const fallbackSimulation = (ratingA: number = 75, ratingB: number = 75, stage: s
     else { if (Math.random() > 0.6) scoreB++; }
   }
 
+  // Fallback knockout tie-breaker (no penalty info, just force score)
   if (stage !== 'Group' && scoreA === scoreB) {
      if (Math.random() > 0.5) scoreA++; else scoreB++;
   }
@@ -62,7 +64,7 @@ export const simulateMatchWithAI = async (
             is_knockout: isKnockout
         };
 
-        const response = await fetch(`${API_BASE_URL}/predict`, {
+        const response = await fetch(`${API_BASE_URL}/predict-gemini`, {
             method: 'POST',
             mode: 'cors',
             headers: {
@@ -80,23 +82,25 @@ export const simulateMatchWithAI = async (
 
         let homeScore = data.team1_score;
         let awayScore = data.team2_score;
+        let penaltyWinner: 'home' | 'away' | undefined;
 
-        // Handle Knockout Tie-Breaker (App requires a score difference to determine winner)
+        // Handle Knockout Tie-Breaker
         if (isKnockout && homeScore === awayScore && data.qualified_team) {
             const winnerName = data.qualified_team.toLowerCase();
             const homeName = homeTeam.name.en.toLowerCase();
             
-            // Artificial goal for the winner so the app brackets work correctly
+            // If home team is the qualified one
             if (winnerName.includes(homeName) || homeName.includes(winnerName)) {
-                homeScore += 1;
+                penaltyWinner = 'home';
             } else {
-                awayScore += 1;
+                penaltyWinner = 'away';
             }
         }
 
         return {
             homeScore,
-            awayScore
+            awayScore,
+            penaltyWinner
         };
 
     } catch (error: any) {
@@ -124,7 +128,7 @@ export const simulateBatchMatches = async (
             };
         });
 
-        const response = await fetch(`${API_BASE_URL}/predict_batch`, {
+        const response = await fetch(`${API_BASE_URL}/predict-batch-gemini`, {
             method: 'POST',
             mode: 'cors',
             headers: {
@@ -163,6 +167,7 @@ export const simulateBatchMatches = async (
             
             let homeScore = result.team1_score;
             let awayScore = result.team2_score;
+            let penaltyWinner: 'home' | 'away' | undefined;
 
             // Handle Knockout Tie-Breaker
             if (result.is_knockout && homeScore === awayScore && result.qualified_team) {
@@ -170,16 +175,17 @@ export const simulateBatchMatches = async (
                 const homeName = homeTeam.name.en.toLowerCase();
                 
                 if (winnerName.includes(homeName) || homeName.includes(winnerName)) {
-                    homeScore += 1;
+                    penaltyWinner = 'home';
                 } else {
-                    awayScore += 1;
+                    penaltyWinner = 'away';
                 }
             }
 
             return {
                 matchId: m.id,
                 homeScore,
-                awayScore
+                awayScore,
+                penaltyWinner
             };
         });
 
