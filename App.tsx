@@ -364,6 +364,7 @@ export default function App() {
     const awayTeam = TEAMS[match.awayTeamId];
 
     const result = await simulateMatchWithAI(homeTeam, awayTeam, match.stage, language);
+    console.log("result",result)
 
     const updatedMatches = matches.map(m => {
       if (m.id === match.id) {
@@ -383,6 +384,7 @@ export default function App() {
       }
       return m;
     });
+    console.log("updatedMatches",updatedMatches)
 
     setMatches(updatedMatches);
     logAppEvent('simulate_match_complete', { match_id: match.id });
@@ -504,6 +506,7 @@ export default function App() {
 
 
   const autoSimulateGroup = async () => {
+    console.log("autosimulategriou")
     const unfinishedMatches = matches.filter(m => m.stage === 'Group' && !m.isFinished);
     if (unfinishedMatches.length === 0) return;
 
