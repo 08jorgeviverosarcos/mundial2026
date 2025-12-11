@@ -37,11 +37,11 @@ export default function App() {
   // Dynamic SEO Title Update
   useEffect(() => {
     if (language === 'es') {
-      document.title = "Simulador Mundial 2026 - Predicciones IA | Fixture y Grupos";
+      document.title = "Simulador Mundial 2026 - Pronósticos y Tabla de Posiciones";
       const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) metaDesc.setAttribute("content", "Simula el Mundial FIFA 2026. Predice resultados con IA, tabla de posiciones y eliminatorias. ¡Juega y descubre al campeón!");
+      if (metaDesc) metaDesc.setAttribute("content", "Calculadora y simulador del Mundial FIFA 2026. Predice resultados de fase de grupos, octavos y la final en México, USA y Canadá.");
     } else {
-      document.title = "FIFA 2026 World Cup Simulator - AI Predictions | Bracket & Groups";
+      document.title = "FIFA 2026 World Cup Simulator - Forecast & Standings";
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute("content", "Simulate the FIFA World Cup 2026. Predict matches with AI, view group standings and bracket. Play now and find the champion!");
     }
@@ -947,6 +947,14 @@ export default function App() {
                         )}
                     </div>
                 </div>
+
+                {/* SEO Footer Section */}
+                <section className="max-w-5xl mx-auto mt-16 p-6 border-t border-white/10 text-center">
+                    <h2 className="text-2xl font-teko text-gray-300 mb-4 uppercase tracking-widest">{t.seo.title}</h2>
+                    <p className="text-sm text-gray-500 leading-relaxed max-w-4xl mx-auto">
+                        {t.seo.text}
+                    </p>
+                </section>
             </div>
         )}
 
@@ -974,7 +982,7 @@ export default function App() {
       
       {/* Footer Version Indicator */}
       <div className="absolute bottom-1 right-2 text-[10px] text-gray-600 font-mono pointer-events-none z-0">
-        v1.3.1-ads
+        v1.4.0-seo
       </div>
     </div>
   );

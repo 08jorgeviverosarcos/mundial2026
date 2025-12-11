@@ -50,7 +50,7 @@ export const GroupTable: React.FC<GroupTableProps> = ({ group, standings, teams,
               >
                 <div className="col-span-6 flex items-center gap-2">
                   <span className="text-xs text-gray-500 font-mono w-3">{index + 1}</span>
-                  <img src={team.flag} alt={team.name[language]} className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                  <img src={team.flag} alt={`${t.prediction} ${team.name[language]}`} className="w-5 h-3.5 object-cover rounded shadow-sm" />
                   <span className={`text-sm font-bold font-teko truncate ${isUser ? 'text-yellow-400' : 'text-gray-200'}`}>
                     {team.name[language]}
                   </span>

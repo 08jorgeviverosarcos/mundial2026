@@ -23,8 +23,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
 
   const isUserMatch = match.homeTeamId === userTeamId || match.awayTeamId === userTeamId;
 
+  // SEO Optimized Stage Label
   const stageLabel = match.stage === 'Group' 
-    ? `${t.group} ${match.group} - ${t.match}` 
+    ? `${t.group} ${match.group}` 
     : t.stages[match.stage];
 
   const handleEditClick = () => {
@@ -80,23 +81,31 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
           </button>
       )}
 
-      {/* Header */}
+      {/* SEO Header - Stage & Location */}
       <div className="flex justify-between items-center text-xs text-gray-400 uppercase tracking-widest font-semibold pr-4 mb-1">
         <span>{stageLabel}</span>
-        <span>{match.stadium.city[language]}</span>
+        <span className="truncate max-w-[120px]" title={match.stadium.city[language]}>{match.stadium.city[language]}</span>
       </div>
+      
       {/* Date & Time */}
       <div className="flex justify-center gap-2 text-[10px] text-blue-300 font-mono -mt-1 mb-2">
           <span>{match.date[language]}</span>
           {match.time && <span>• {match.time}</span>}
       </div>
 
+      {/* SEO H3 for Search Engines - Visible but styled subtly */}
+      {home && away && (
+        <h3 className="text-[10px] text-center text-gray-500/50 font-sans leading-none pb-2 select-none uppercase tracking-widest">
+            {t.prediction}: {home.name[language]} vs {away.name[language]}
+        </h3>
+      )}
+
       <div className="flex justify-between items-center py-2">
         {/* Home Team */}
         <div className="flex flex-col items-center w-1/3 text-center px-1">
           {home ? (
             <>
-              <img src={home.flag} alt={home.name[language]} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
+              <img src={home.flag} alt={`${t.prediction} ${home.name[language]}`} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
               <span className={`font-teko text-lg leading-none ${home.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{home.name[language]}</span>
             </>
           ) : (
@@ -173,7 +182,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
         <div className="flex flex-col items-center w-1/3 text-center px-1">
           {away ? (
             <>
-              <img src={away.flag} alt={away.name[language]} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
+              <img src={away.flag} alt={`${t.prediction} ${away.name[language]}`} className="w-10 h-7 object-cover rounded shadow-sm mb-2" />
               <span className={`font-teko text-lg leading-none ${away.id === userTeamId ? 'text-yellow-400' : 'text-white'}`}>{away.name[language]}</span>
             </>
           ) : (
