@@ -822,15 +822,6 @@ export default function App() {
               <p className="text-gray-400 text-sm mb-8 animate-pulse text-center">
                   {language === 'es' ? 'Generando predicciones con IA... Por favor espera.' : 'Generating AI predictions... Please wait.'}
               </p>
-
-              {/* Ad Container with Context */}
-              <div className="w-full max-w-md bg-white/5 rounded-lg p-4 border border-white/10 flex flex-col items-center">
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">
-                      {language === 'es' ? 'Patrocinado' : 'Sponsored'}
-                  </span>
-                  {/* Reuse AdBanner but allow it to fill width of this container */}
-                  <AdBanner className="my-0 w-full" />
-              </div>
           </div>
       )}
 
