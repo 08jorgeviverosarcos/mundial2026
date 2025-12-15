@@ -33,6 +33,7 @@ export default function App() {
 
   const hasKnockouts = matches.some(m => m.stage !== 'Group');
   const unfinishedGroupMatches = matches.some(m => m.stage === 'Group' && !m.isFinished);
+  const isBatchSimulating = simulatingId === 'BATCH' || (typeof simulatingId === 'string' && simulatingId.startsWith('BATCH_'));
 
   // Dynamic SEO Title Update
   useEffect(() => {
@@ -808,13 +809,8 @@ export default function App() {
     <div className="min-h-screen bg-slate-900 text-white flex flex-col relative">
       <Navbar />
 
-      {/* Ad Banner - Top Placement */}
-      <div className="max-w-7xl mx-auto px-6 w-full">
-         <AdBanner />
-      </div>
-
       {/* FIXED Loader Overlay: Outside of main to cover viewport and block interaction */}
-      {simulatingId === 'BATCH' && (
+      {isBatchSimulating && (
           <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center touch-none h-screen w-screen p-4">
               {/* Visual Feedback first (Priority) */}
               <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -825,13 +821,29 @@ export default function App() {
           </div>
       )}
 
+      {/* Ad Banner - Top Placement - MOVED below header text content inside Main, and CONDITIONAL */}
+      
       <main className="flex-1 overflow-hidden relative">
         {appState === AppState.GROUP_STAGE && (
             // Toggle overflow based on simulating state to prevent scrolling
-            <div className={`h-full p-6 ${simulatingId === 'BATCH' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className={`h-full p-6 ${isBatchSimulating ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                 <div className="max-w-7xl mx-auto">
                     {/* Groups Grid */}
-                    <h2 className="text-4xl font-teko text-white mb-6 border-l-4 border-blue-500 pl-4">{t.groupStage}</h2>
+                    <div className="mb-6 border-l-4 border-blue-500 pl-4">
+                        <h2 className="text-4xl font-teko text-white">{t.groupStage}</h2>
+                        <p className="text-gray-400 text-sm max-w-2xl mt-1">
+                            {language === 'es' 
+                             ? "Consulta la tabla de posiciones en tiempo real. Los dos primeros de cada grupo y los 8 mejores terceros clasificarán a los dieciseisavos de final." 
+                             : "View real-time standings. The top two teams from each group and the 8 best third-placed teams will qualify for the Round of 32."}
+                        </p>
+                    </div>
+
+                    {/* Conditional AdBanner: Only show if NOT simulating to comply with 'No content screen' policy */}
+                    {!isBatchSimulating && (
+                        <div className="mb-8">
+                            <AdBanner />
+                        </div>
+                    )}
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
                         {GROUPS.map((group) => (
@@ -846,7 +858,7 @@ export default function App() {
                     </div>
                     
                     {/* Ad Banner - Middle Placement */}
-                    <AdBanner className="mb-8" />
+                    {!isBatchSimulating && <AdBanner className="mb-8" />}
 
                     {/* Match Schedule with Filters */}
                     <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 gap-4 border-l-4 border-yellow-500 pl-4">
@@ -861,7 +873,7 @@ export default function App() {
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
                                     </svg>
-                                    {simulatingId === 'BATCH' ? t.simulating : t.quickSim}
+                                    {isBatchSimulating ? t.simulating : t.quickSim}
                                 </button>
                             ) : (
                                 <button 
@@ -963,17 +975,19 @@ export default function App() {
                         simulatingId={simulatingId}
                     />
                 </div>
-                {/* Ad Banner - Bottom Placement for Knockouts */}
-                <div className="shrink-0 px-6 bg-slate-900 border-t border-white/5">
-                    <AdBanner />
-                </div>
+                {/* Ad Banner - Bottom Placement for Knockouts, conditional on simulation */}
+                {!isBatchSimulating && (
+                    <div className="shrink-0 px-6 bg-slate-900 border-t border-white/5">
+                        <AdBanner />
+                    </div>
+                )}
             </div>
         )}
       </main>
       
       {/* Footer Version Indicator */}
       <div className="absolute bottom-1 right-2 text-[10px] text-gray-600 font-mono pointer-events-none z-0">
-        v1.4.0-seo
+        v1.4.1-ads-fix
       </div>
     </div>
   );

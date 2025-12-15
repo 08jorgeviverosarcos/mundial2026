@@ -10,27 +10,44 @@ export const AdBanner: React.FC<AdBannerProps> = ({ className, slotId = "1234567
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Prevent double initialization in React Strict Mode which can cause errors
-    if (initialized.current) return;
-    
-    // Check if ad has already been filled (AdSense adds data-ad-status attribute)
-    if (adRef.current && adRef.current.getAttribute('data-ad-status')) return;
+    // Retry logic to ensure the element has width before initializing the ad.
+    // This prevents the "No slot size for availableWidth=0" error which happens
+    // when AdSense tries to render in a hidden or non-layouted container.
+    const attemptInit = () => {
+        if (initialized.current) return;
+        if (!adRef.current) return;
 
-    try {
-      // Cast window to any to access adsbygoogle array
-      const adsbygoogle = (window as any).adsbygoogle || [];
-      // Only push if we haven't already
-      adsbygoogle.push({});
-      initialized.current = true;
-    } catch (err) {
-      console.error('AdSense error:', err);
-    }
+        // If ad is already initialized (Google adds attributes), skip
+        if (adRef.current.getAttribute('data-ad-status')) {
+            initialized.current = true;
+            return;
+        }
+
+        // Critical Check: If width is 0, wait and retry.
+        if (adRef.current.offsetWidth === 0) {
+            setTimeout(attemptInit, 100);
+            return;
+        }
+
+        try {
+            const adsbygoogle = (window as any).adsbygoogle || [];
+            adsbygoogle.push({});
+            initialized.current = true;
+        } catch (err) {
+            console.error('AdSense error:', err);
+        }
+    };
+
+    // Initial delay to allow React to paint the DOM
+    const timer = setTimeout(attemptInit, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className={`w-full flex justify-center my-6 overflow-hidden min-h-[100px] bg-black/20 backdrop-blur-sm rounded-lg border border-white/5 items-center relative ${className}`}>
-        {/* Using the client ID found in index.html */}
-         <ins className="adsbygoogle"
+        {/* Ad Unit */}
+         <ins className="adsbygoogle relative z-10"
              ref={adRef}
              style={{ display: 'block', width: '100%' }}
              data-ad-client="ca-pub-3464238874870656" 
@@ -38,7 +55,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({ className, slotId = "1234567
              data-ad-format="auto"
              data-full-width-responsive="true"></ins>
         
-        <span className="text-[10px] text-gray-600 absolute pointer-events-none font-mono">
+        {/* Placeholder Background Text */}
+        <span className="text-[10px] text-gray-600 absolute pointer-events-none font-mono z-0">
             Advertisement Space
         </span>
     </div>
