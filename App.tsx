@@ -33,6 +33,8 @@ export default function App() {
 
   const hasKnockouts = matches.some(m => m.stage !== 'Group');
   const unfinishedGroupMatches = matches.some(m => m.stage === 'Group' && !m.isFinished);
+  const isGroupStageComplete = !unfinishedGroupMatches;
+  const canAccessKnockouts = isGroupStageComplete;
   const isBatchSimulating = simulatingId === 'BATCH' || (typeof simulatingId === 'string' && simulatingId.startsWith('BATCH_'));
 
   // Dynamic SEO Title Update
@@ -57,10 +59,21 @@ export default function App() {
         try {
             const parsed = JSON.parse(savedState);
             if (parsed.matches && parsed.matches.length > 0) {
-                setMatches(parsed.matches);
+                const parsedMatches: Match[] = parsed.matches;
+                const hasUnfinishedSavedGroupMatches = parsedMatches.some(
+                  (m: Match) => m.stage === 'Group' && !m.isFinished
+                );
+                const nextAppState =
+                  parsed.appState === AppState.KNOCKOUT_STAGE && hasUnfinishedSavedGroupMatches
+                    ? AppState.GROUP_STAGE
+                    : parsed.appState !== undefined
+                      ? parsed.appState
+                      : AppState.SELECT_TEAM;
+
+                setMatches(parsedMatches);
                 setStandings(parsed.standings || {});
                 setUserTeam(parsed.userTeam);
-                setAppState(parsed.appState !== undefined ? parsed.appState : AppState.SELECT_TEAM);
+                setAppState(nextAppState);
                 loaded = true;
                 logAppEvent('session_start', { loaded_from_storage: true });
             }
@@ -733,16 +746,22 @@ export default function App() {
                 <>
                 <button 
                     onClick={() => {
+                        if (!canAccessKnockouts) return;
                         if (hasKnockouts) {
                             setAppState(AppState.KNOCKOUT_STAGE);
                         } else {
                             finishGroupStage();
                         }
                     }}
-                    className="px-3 py-1.5 md:px-4 md:py-2 bg-green-600 hover:bg-green-500 rounded font-teko text-lg md:text-xl tracking-wide transition-colors shadow-lg shadow-green-900/20"
+                    disabled={!canAccessKnockouts}
+                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded font-teko text-lg md:text-xl tracking-wide transition-colors shadow-lg ${
+                      canAccessKnockouts
+                        ? 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
+                        : 'bg-slate-700 text-gray-300 cursor-not-allowed shadow-slate-900/20 opacity-80'
+                    }`}
                 >
-                     <span className="md:hidden">{language === 'en' ? 'Knockouts' : 'Fase Final'}</span>
-                     <span className="hidden md:inline">{t.goToKnockouts}</span>
+                     <span className="md:hidden">{canAccessKnockouts ? t.knockoutsStepShort : t.completeGroupsShort}</span>
+                     <span className="hidden md:inline">{canAccessKnockouts ? t.goToKnockoutsReady : t.goToKnockoutsBlocked}</span>
                 </button>
                 </>
             )}
@@ -833,8 +852,13 @@ export default function App() {
                         <h2 className="text-4xl font-teko text-white">{t.groupStage}</h2>
                         <p className="text-gray-400 text-sm max-w-2xl mt-1">
                             {language === 'es' 
-                             ? "Consulta la tabla de posiciones en tiempo real. Los dos primeros de cada grupo y los 8 mejores terceros clasificarán a los dieciseisavos de final." 
-                             : "View real-time standings. The top two teams from each group and the 8 best third-placed teams will qualify for the Round of 32."}
+                             ? "Paso 1: completa la fase de grupos. Consulta la tabla en tiempo real; los dos primeros de cada grupo y los 8 mejores terceros clasificarán a dieciseisavos."
+                             : "Step 1: complete the group stage. View real-time standings; the top two teams from each group and the 8 best third-placed teams qualify for the Round of 32."}
+                        </p>
+                    </div>
+                    <div className={`mb-6 border-l-4 pl-4 ${canAccessKnockouts ? 'border-green-500' : 'border-yellow-500'}`}>
+                        <p className={`text-sm ${canAccessKnockouts ? 'text-green-300' : 'text-yellow-300'}`}>
+                            {canAccessKnockouts ? t.goToKnockoutsReady : t.groupStepMessage}
                         </p>
                     </div>
 
@@ -845,21 +869,6 @@ export default function App() {
                         </div>
                     )}
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-                        {GROUPS.map((group) => (
-                            <GroupTable 
-                                key={group.id} 
-                                group={group} 
-                                standings={standings} 
-                                teams={TEAMS} 
-                                userTeamId={userTeam?.id || null}
-                            />
-                        ))}
-                    </div>
-                    
-                    {/* Ad Banner - Middle Placement */}
-                    {!isBatchSimulating && <AdBanner className="mb-8" />}
-
                     {/* Match Schedule with Filters */}
                     <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 gap-4 border-l-4 border-yellow-500 pl-4">
                         <div className="flex flex-wrap items-center gap-4">
@@ -938,7 +947,7 @@ export default function App() {
                                     match={match} 
                                     teams={TEAMS}
                                     userTeamId={userTeam?.id || null}
-                                    onSimulate={hasKnockouts ? undefined : simulateMatch}
+                                    onSimulate={simulateMatch}
                                     onUpdateScore={handleUpdateScore}
                                     loading={simulatingId === match.id}
                                 />
@@ -949,6 +958,27 @@ export default function App() {
                             </div>
                         )}
                     </div>
+
+                    {/* Group Tables */}
+                    <div className="mb-6 border-l-4 border-blue-500 pl-4">
+                        <h3 className="text-3xl font-teko text-white">
+                            {language === 'es' ? 'Tabla de Posiciones' : 'Group Tables'}
+                        </h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+                        {GROUPS.map((group) => (
+                            <GroupTable 
+                                key={group.id} 
+                                group={group} 
+                                standings={standings} 
+                                teams={TEAMS} 
+                                userTeamId={userTeam?.id || null}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Ad Banner - Middle Placement */}
+                    {!isBatchSimulating && <AdBanner className="mb-8" />}
                 </div>
 
                 {/* SEO Footer Section */}
@@ -963,6 +993,9 @@ export default function App() {
 
         {appState === AppState.KNOCKOUT_STAGE && (
             <div className="flex flex-col h-full">
+                <div className="px-6 pt-4 pb-2 border-b border-white/10 bg-slate-900/70">
+                    <p className="text-sm text-blue-300">{t.returnToGroupsHint}</p>
+                </div>
                 <div className="flex-1 overflow-auto">
                     <Bracket 
                         matches={matches.filter(m => m.stage !== 'Group')}
