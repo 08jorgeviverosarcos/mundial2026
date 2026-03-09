@@ -1,3 +1,10 @@
+// TO ACTIVATE ADS (after AdSense approval):
+// 1. Go to https://adsense.google.com → Ads → By ad unit → Create ad unit
+// 2. Create 2 units: "Group Stage Top" and "Group Stage Middle"
+// 3. Replace the slotId default "1234567890" with your real ad unit IDs
+// 4. In App.tsx, uncomment the AdBanner blocks (search "temporalmente desactivado")
+// 5. Also uncomment the AdBanner import at the top of App.tsx
+// 6. Only place AdBanner in GROUP_STAGE — NOT in KNOCKOUT_STAGE (insufficient content)
 import React, { useEffect, useRef } from 'react';
 
 interface AdBannerProps {

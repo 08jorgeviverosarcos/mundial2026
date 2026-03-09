@@ -5,7 +5,7 @@ import { TeamSelector } from './components/TeamSelector';
 import { GroupTable } from './components/GroupTable';
 import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
-import { AdBanner } from './components/AdBanner'; // Import AdBanner
+// import { AdBanner } from './components/AdBanner'; // Desactivado - pendiente IDs reales de AdSense
 import { simulateMatchWithAI, simulateBatchMatches } from './services/railwayService'; // Updated Import to Railway
 import { useLanguage } from './contexts/LanguageContext';
 import { logAppEvent } from './services/firebase';
@@ -862,12 +862,12 @@ export default function App() {
                         </p>
                     </div>
 
-                    {/* Conditional AdBanner: Only show if NOT simulating to comply with 'No content screen' policy */}
-                    {!isBatchSimulating && (
+                    {/* AdBanner temporalmente desactivado - pendiente IDs reales de AdSense */}
+                    {/* {!isBatchSimulating && (
                         <div className="mb-8">
                             <AdBanner />
                         </div>
-                    )}
+                    )} */}
                     
                     {/* Match Schedule with Filters */}
                     <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 gap-4 border-l-4 border-yellow-500 pl-4">
@@ -977,8 +977,8 @@ export default function App() {
                         ))}
                     </div>
 
-                    {/* Ad Banner - Middle Placement */}
-                    {!isBatchSimulating && <AdBanner className="mb-8" />}
+                    {/* Ad Banner - Middle Placement - temporalmente desactivado */}
+                    {/* {!isBatchSimulating && <AdBanner className="mb-8" />} */}
                 </div>
 
                 {/* SEO Footer Section */}
@@ -1008,12 +1008,12 @@ export default function App() {
                         simulatingId={simulatingId}
                     />
                 </div>
-                {/* Ad Banner - Bottom Placement for Knockouts, conditional on simulation */}
-                {!isBatchSimulating && (
+                {/* Ad Banner - Bottom Placement for Knockouts - temporalmente desactivado */}
+                {/* {!isBatchSimulating && (
                     <div className="shrink-0 px-6 bg-slate-900 border-t border-white/5">
                         <AdBanner />
                     </div>
-                )}
+                )} */}
             </div>
         )}
       </main>
