@@ -52,11 +52,11 @@ export const TEAMS: Record<string, Team> = {
   'MEX': { id: 'MEX', name: { en: 'Mexico', es: 'México' }, code: 'MEX', flag: getFlag('mx'), rating: 84, confederation: 'CONCACAF' },
   'RSA': { id: 'RSA', name: { en: 'South Africa', es: 'Sudáfrica' }, code: 'RSA', flag: getFlag('za'), rating: 76, confederation: 'CAF' },
   'KOR': { id: 'KOR', name: { en: 'South Korea', es: 'Corea del Sur' }, code: 'KOR', flag: getFlag('kr'), rating: 80, confederation: 'AFC' },
-  'DEN': { id: 'DEN', name: { en: 'Denmark', es: 'Dinamarca' }, code: 'DEN', flag: getFlag('dk'), rating: 81, confederation: 'UEFA' },
+  'CZE': { id: 'CZE', name: { en: 'Czech Republic', es: 'República Checa' }, code: 'CZE', flag: getFlag('cz'), rating: 79, confederation: 'UEFA' },
 
   // --- Group B ---
   'CAN': { id: 'CAN', name: { en: 'Canada', es: 'Canadá' }, code: 'CAN', flag: getFlag('ca'), rating: 80, confederation: 'CONCACAF' },
-  'ITA': { id: 'ITA', name: { en: 'Italy', es: 'Italia' }, code: 'ITA', flag: getFlag('it'), rating: 87, confederation: 'UEFA' },
+  'BIH': { id: 'BIH', name: { en: 'Bosnia and Herzegovina', es: 'Bosnia y Herzegovina' }, code: 'BIH', flag: getFlag('ba'), rating: 76, confederation: 'UEFA' },
   'QAT': { id: 'QAT', name: { en: 'Qatar', es: 'Catar' }, code: 'QAT', flag: getFlag('qa'), rating: 74, confederation: 'AFC' },
   'SUI': { id: 'SUI', name: { en: 'Switzerland', es: 'Suiza' }, code: 'SUI', flag: getFlag('ch'), rating: 82, confederation: 'UEFA' },
 
@@ -81,7 +81,7 @@ export const TEAMS: Record<string, Team> = {
   // --- Group F ---
   'NED': { id: 'NED', name: { en: 'Netherlands', es: 'Países Bajos' }, code: 'NED', flag: getFlag('nl'), rating: 87, confederation: 'UEFA' },
   'JPN': { id: 'JPN', name: { en: 'Japan', es: 'Japón' }, code: 'JPN', flag: getFlag('jp'), rating: 83, confederation: 'AFC' },
-  'UKR': { id: 'UKR', name: { en: 'Ukraine', es: 'Ucrania' }, code: 'UKR', flag: getFlag('ua'), rating: 79, confederation: 'UEFA' },
+  'SWE': { id: 'SWE', name: { en: 'Sweden', es: 'Suecia' }, code: 'SWE', flag: getFlag('se'), rating: 81, confederation: 'UEFA' },
   'TUN': { id: 'TUN', name: { en: 'Tunisia', es: 'Túnez' }, code: 'TUN', flag: getFlag('tn'), rating: 75, confederation: 'CAF' },
 
   // --- Group G ---
@@ -99,7 +99,7 @@ export const TEAMS: Record<string, Team> = {
   // --- Group I ---
   'FRA': { id: 'FRA', name: { en: 'France', es: 'Francia' }, code: 'FRA', flag: getFlag('fr'), rating: 93, confederation: 'UEFA' },
   'SEN': { id: 'SEN', name: { en: 'Senegal', es: 'Senegal' }, code: 'SEN', flag: getFlag('sn'), rating: 80, confederation: 'CAF' },
-  'BOL': { id: 'BOL', name: { en: 'Bolivia', es: 'Bolivia' }, code: 'BOL', flag: getFlag('bo'), rating: 74, confederation: 'CONMEBOL' },
+  'IRQ': { id: 'IRQ', name: { en: 'Iraq', es: 'Irak' }, code: 'IRQ', flag: getFlag('iq'), rating: 75, confederation: 'AFC' },
   'NOR': { id: 'NOR', name: { en: 'Norway', es: 'Noruega' }, code: 'NOR', flag: getFlag('no'), rating: 81, confederation: 'UEFA' },
 
   // --- Group J ---
@@ -110,7 +110,7 @@ export const TEAMS: Record<string, Team> = {
 
   // --- Group K ---
   'POR': { id: 'POR', name: { en: 'Portugal', es: 'Portugal' }, code: 'POR', flag: getFlag('pt'), rating: 89, confederation: 'UEFA' },
-  'JAM': { id: 'JAM', name: { en: 'Jamaica', es: 'Jamaica' }, code: 'JAM', flag: getFlag('jm'), rating: 72, confederation: 'CONCACAF' },
+  'COD': { id: 'COD', name: { en: 'DR Congo', es: 'RD Congo' }, code: 'COD', flag: getFlag('cd'), rating: 76, confederation: 'CAF' },
   'UZB': { id: 'UZB', name: { en: 'Uzbekistan', es: 'Uzbekistán' }, code: 'UZB', flag: getFlag('uz'), rating: 72, confederation: 'AFC' },
   'COL': { id: 'COL', name: { en: 'Colombia', es: 'Colombia' }, code: 'COL', flag: getFlag('co'), rating: 85, confederation: 'CONMEBOL' },
 
@@ -122,17 +122,17 @@ export const TEAMS: Record<string, Team> = {
 };
 
 export const GROUPS: Group[] = [
-  { id: 'A', teams: ['MEX', 'RSA', 'KOR', 'DEN'] },
-  { id: 'B', teams: ['CAN', 'ITA', 'QAT', 'SUI'] },
+  { id: 'A', teams: ['MEX', 'RSA', 'KOR', 'CZE'] },
+  { id: 'B', teams: ['CAN', 'BIH', 'QAT', 'SUI'] },
   { id: 'C', teams: ['BRA', 'MAR', 'HAI', 'SCO'] },
   { id: 'D', teams: ['USA', 'PAR', 'AUS', 'TUR'] },
   { id: 'E', teams: ['GER', 'CUW', 'CIV', 'ECU'] },
-  { id: 'F', teams: ['NED', 'JPN', 'UKR', 'TUN'] },
+  { id: 'F', teams: ['NED', 'JPN', 'SWE', 'TUN'] },
   { id: 'G', teams: ['BEL', 'EGY', 'IRN', 'NZL'] },
   { id: 'H', teams: ['ESP', 'CPV', 'KSA', 'URU'] },
-  { id: 'I', teams: ['FRA', 'SEN', 'BOL', 'NOR'] },
+  { id: 'I', teams: ['FRA', 'SEN', 'IRQ', 'NOR'] },
   { id: 'J', teams: ['ARG', 'ALG', 'AUT', 'JOR'] },
-  { id: 'K', teams: ['POR', 'JAM', 'UZB', 'COL'] },
+  { id: 'K', teams: ['POR', 'COD', 'UZB', 'COL'] },
   { id: 'L', teams: ['ENG', 'CRO', 'GHA', 'PAN'] },
 ];
 
