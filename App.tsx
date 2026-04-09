@@ -16,7 +16,8 @@ enum AppState {
   KNOCKOUT_STAGE
 }
 
-const STORAGE_KEY = 'FIFA26_SIM_STATE_V1';
+const STORAGE_KEY = 'FIFA26_SIM_STATE_V2';
+const OLD_STORAGE_KEYS = ['FIFA26_SIM_STATE_V1'];
 
 export default function App() {
   const { language, setLanguage, t } = useLanguage();
@@ -52,6 +53,9 @@ export default function App() {
 
   // Initialize Data (Load from Storage or Default)
   useEffect(() => {
+    // Clear stale data from old storage keys
+    OLD_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+
     const savedState = localStorage.getItem(STORAGE_KEY);
     let loaded = false;
 
@@ -221,11 +225,13 @@ export default function App() {
     const thirdPlaceTeams: GroupStanding[] = [];
 
     GROUPS.forEach(group => {
-        const groupStandings = group.teams.map(t => currentStandings[t]).sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points;
-            if (b.gd !== a.gd) return b.gd - a.gd;
-            return b.gf - a.gf;
-        });
+        const groupStandings = group.teams
+            .map(t => currentStandings[t])
+            .sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                if (b.gd !== a.gd) return b.gd - a.gd;
+                return b.gf - a.gf;
+            });
         positions[group.id] = groupStandings.map(s => s.teamId);
         thirdPlaceTeams.push(groupStandings[2]);
     });
@@ -643,33 +649,33 @@ export default function App() {
     // Since this is "First Time" finish or "Re-entry", we append mainly
     const existingIds = new Set(matches.map(m => m.id));
 
-    // Define Empty slots for Rounds after R32
+    // Define Empty slots for Rounds after R32 — times in UTC (EDT = UTC-4)
     const r16Plan = [
-        { m: 89, date: {en: 'Jul 4', es: '4 de Jul'}, ven: 'Philadelphia Stadium' },
-        { m: 90, date: {en: 'Jul 4', es: '4 de Jul'}, ven: 'Houston Stadium' },
-        { m: 91, date: {en: 'Jul 5', es: '5 de Jul'}, ven: 'New York New Jersey Stadium' },
-        { m: 92, date: {en: 'Jul 5', es: '5 de Jul'}, ven: 'Estadio Azteca' },
-        { m: 93, date: {en: 'Jul 6', es: '6 de Jul'}, ven: 'Dallas Stadium' },
-        { m: 94, date: {en: 'Jul 6', es: '6 de Jul'}, ven: 'Seattle Stadium' },
-        { m: 95, date: {en: 'Jul 7', es: '7 de Jul'}, ven: 'Atlanta Stadium' },
-        { m: 96, date: {en: 'Jul 7', es: '7 de Jul'}, ven: 'BC Place Vancouver' },
+        { m: 89,  dateTimeUtc: '2026-07-04T21:00:00Z', date: {en: 'Jul 4',  es: '4 de Jul'},  ven: 'philadelphia' }, // 5pm ET
+        { m: 90,  dateTimeUtc: '2026-07-04T17:00:00Z', date: {en: 'Jul 4',  es: '4 de Jul'},  ven: 'houston'      }, // 1pm ET
+        { m: 91,  dateTimeUtc: '2026-07-05T20:00:00Z', date: {en: 'Jul 5',  es: '5 de Jul'},  ven: 'new york'     }, // 4pm ET
+        { m: 92,  dateTimeUtc: '2026-07-06T00:00:00Z', date: {en: 'Jul 5',  es: '5 de Jul'},  ven: 'azteca'       }, // 8pm ET Jul5
+        { m: 93,  dateTimeUtc: '2026-07-06T19:00:00Z', date: {en: 'Jul 6',  es: '6 de Jul'},  ven: 'dallas'       }, // 3pm ET
+        { m: 94,  dateTimeUtc: '2026-07-07T00:00:00Z', date: {en: 'Jul 6',  es: '6 de Jul'},  ven: 'seattle'      }, // 8pm ET Jul6
+        { m: 95,  dateTimeUtc: '2026-07-07T16:00:00Z', date: {en: 'Jul 7',  es: '7 de Jul'},  ven: 'atlanta'      }, // 12pm ET
+        { m: 96,  dateTimeUtc: '2026-07-07T20:00:00Z', date: {en: 'Jul 7',  es: '7 de Jul'},  ven: 'vancouver'    }, // 4pm ET
     ];
     const qfPlan = [
-        { m: 97, date: {en: 'Jul 9', es: '9 de Jul'}, ven: 'Boston Stadium' },
-        { m: 98, date: {en: 'Jul 10', es: '10 de Jul'}, ven: 'Los Angeles Stadium' },
-        { m: 99, date: {en: 'Jul 11', es: '11 de Jul'}, ven: 'Miami Stadium' },
-        { m: 100, date: {en: 'Jul 11', es: '11 de Jul'}, ven: 'Kansas City Stadium' },
+        { m: 97,  dateTimeUtc: '2026-07-09T20:00:00Z', date: {en: 'Jul 9',  es: '9 de Jul'},  ven: 'boston'       }, // 4pm ET
+        { m: 98,  dateTimeUtc: '2026-07-10T19:00:00Z', date: {en: 'Jul 10', es: '10 de Jul'}, ven: 'los angeles'  }, // 3pm ET
+        { m: 99,  dateTimeUtc: '2026-07-11T21:00:00Z', date: {en: 'Jul 11', es: '11 de Jul'}, ven: 'miami'        }, // 5pm ET
+        { m: 100, dateTimeUtc: '2026-07-12T01:00:00Z', date: {en: 'Jul 11', es: '11 de Jul'}, ven: 'kansas'       }, // 9pm ET Jul11
     ];
     const sfPlan = [
-        { m: 101, date: {en: 'Jul 14', es: '14 de Jul'}, ven: 'Dallas Stadium' },
-        { m: 102, date: {en: 'Jul 15', es: '15 de Jul'}, ven: 'Atlanta Stadium' },
+        { m: 101, dateTimeUtc: '2026-07-14T19:00:00Z', date: {en: 'Jul 14', es: '14 de Jul'}, ven: 'dallas'       }, // 3pm ET
+        { m: 102, dateTimeUtc: '2026-07-15T19:00:00Z', date: {en: 'Jul 15', es: '15 de Jul'}, ven: 'atlanta'      }, // 3pm ET
     ];
     const fPlan = [
-        { m: 103, date: {en: 'Jul 18', es: '18 de Jul'}, ven: 'Miami Stadium' }, 
-        { m: 104, date: {en: 'Jul 19', es: '19 de Jul'}, ven: 'New York New Jersey Stadium' },
+        { m: 103, dateTimeUtc: '2026-07-18T21:00:00Z', date: {en: 'Jul 18', es: '18 de Jul'}, ven: 'miami'        }, // 3rd place 5pm ET
+        { m: 104, dateTimeUtc: '2026-07-19T19:00:00Z', date: {en: 'Jul 19', es: '19 de Jul'}, ven: 'new york'     }, // Final 3pm ET
     ];
 
-    const create = (id: number, stage: Match['stage'], h: string | null, a: string | null, date: LocalizedString, ven: string): Match => ({
+    const create = (id: number, stage: Match['stage'], h: string | null, a: string | null, date: LocalizedString, ven: string, dateTimeUtc?: string): Match => ({
         id: `M${id}`,
         homeTeamId: h,
         awayTeamId: a,
@@ -678,7 +684,7 @@ export default function App() {
         isFinished: false,
         stage,
         date: { en: `${date.en}, 2026`, es: `${date.es}, 2026` },
-        time: id % 2 === 0 ? '20:00' : '16:00', // Assign times for knockouts
+        dateTimeUtc,
         stadium: findStadium(ven)
     });
 
@@ -686,38 +692,35 @@ export default function App() {
 
     // R32
     pairings.forEach(p => {
-        // Find venue/date from static plan inside calculateR32 (we need to duplicate data or find a way to access it, simpler to just map by ID since calculateR32 doesn't return venue)
-        // Re-mapping logic for venue:
         const bracketPlan = [
-            // Sunday 28
-            { m: 73, date: {en: 'Jun 28', es: '28 de Jun'}, ven: 'Los Angeles Stadium' },
-            { m: 74, date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Boston Stadium' },
-            { m: 75, date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Estadio Monterrey' },
-            { m: 76, date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Houston Stadium' }, 
-            { m: 77, date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'New York New Jersey Stadium' },
-            { m: 78, date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'Dallas Stadium' },
-            { m: 79, date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'Estadio Ciudad de México' },
-            { m: 80, date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Atlanta Stadium' },
-            { m: 81, date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'San Francisco Bay Area Stadium' },
-            { m: 82, date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Seattle Stadium' },
-            { m: 83, date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'Toronto Stadium' },
-            { m: 84, date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'Los Angeles Stadium' },
-            { m: 85, date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'BC Place Vancouver' },
-            { m: 86, date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Miami Stadium' },
-            { m: 87, date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Kansas City Stadium' },
-            { m: 88, date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Dallas Stadium' },
+            { m: 73,  dateTimeUtc: '2026-06-28T19:00:00Z', date: {en: 'Jun 28', es: '28 de Jun'}, ven: 'los angeles'  }, // 3pm ET
+            { m: 74,  dateTimeUtc: '2026-06-29T20:30:00Z', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'boston'        }, // 4:30pm ET
+            { m: 75,  dateTimeUtc: '2026-06-30T01:00:00Z', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'monterrey'     }, // 9pm ET Jun29
+            { m: 76,  dateTimeUtc: '2026-06-29T17:00:00Z', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'houston'       }, // 1pm ET
+            { m: 77,  dateTimeUtc: '2026-06-30T21:00:00Z', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'new york'      }, // 5pm ET
+            { m: 78,  dateTimeUtc: '2026-06-30T17:00:00Z', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'dallas'        }, // 1pm ET
+            { m: 79,  dateTimeUtc: '2026-07-01T01:00:00Z', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'azteca'        }, // 9pm ET Jun30
+            { m: 80,  dateTimeUtc: '2026-07-01T16:00:00Z', date: {en: 'Jul 1',  es: '1 de Jul'},  ven: 'atlanta'       }, // 12pm ET
+            { m: 81,  dateTimeUtc: '2026-07-02T00:00:00Z', date: {en: 'Jul 1',  es: '1 de Jul'},  ven: 'san francisco' }, // 8pm ET Jul1
+            { m: 82,  dateTimeUtc: '2026-07-01T20:00:00Z', date: {en: 'Jul 1',  es: '1 de Jul'},  ven: 'seattle'       }, // 4pm ET
+            { m: 83,  dateTimeUtc: '2026-07-02T23:00:00Z', date: {en: 'Jul 2',  es: '2 de Jul'},  ven: 'toronto'       }, // 7pm ET
+            { m: 84,  dateTimeUtc: '2026-07-02T19:00:00Z', date: {en: 'Jul 2',  es: '2 de Jul'},  ven: 'los angeles'   }, // 3pm ET
+            { m: 85,  dateTimeUtc: '2026-07-03T03:00:00Z', date: {en: 'Jul 2',  es: '2 de Jul'},  ven: 'vancouver'     }, // 11pm ET Jul2
+            { m: 86,  dateTimeUtc: '2026-07-03T22:00:00Z', date: {en: 'Jul 3',  es: '3 de Jul'},  ven: 'miami'         }, // 6pm ET
+            { m: 87,  dateTimeUtc: '2026-07-04T01:30:00Z', date: {en: 'Jul 3',  es: '3 de Jul'},  ven: 'kansas'        }, // 9:30pm ET Jul3
+            { m: 88,  dateTimeUtc: '2026-07-03T18:00:00Z', date: {en: 'Jul 3',  es: '3 de Jul'},  ven: 'dallas'        }, // 2pm ET
         ];
         const meta = bracketPlan.find(b => `M${b.m}` === p.id);
         if (meta && !existingIds.has(p.id)) {
-            newMatches.push(create(parseInt(p.id.substring(1)), 'Round of 32', p.homeTeamId, p.awayTeamId, meta.date, meta.ven));
+            newMatches.push(create(parseInt(p.id.substring(1)), 'Round of 32', p.homeTeamId, p.awayTeamId, meta.date, meta.ven, meta.dateTimeUtc));
         }
     });
 
     // Subsequents
-    r16Plan.forEach(p => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Round of 16', null, null, p.date, p.ven)));
-    qfPlan.forEach(p => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Quarter-Final', null, null, p.date, p.ven)));
-    sfPlan.forEach(p => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Semi-Final', null, null, p.date, p.ven)));
-    fPlan.forEach((p, idx) => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, idx === 0 ? 'Third Place' : 'Final', null, null, p.date, p.ven)));
+    r16Plan.forEach(p => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Round of 16',    null, null, p.date, p.ven, p.dateTimeUtc)));
+    qfPlan.forEach(p  => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Quarter-Final',  null, null, p.date, p.ven, p.dateTimeUtc)));
+    sfPlan.forEach(p  => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Semi-Final',     null, null, p.date, p.ven, p.dateTimeUtc)));
+    fPlan.forEach((p, idx) => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, idx === 0 ? 'Third Place' : 'Final', null, null, p.date, p.ven, p.dateTimeUtc)));
 
     setMatches(prev => [...prev, ...newMatches]);
     setAppState(AppState.KNOCKOUT_STAGE);

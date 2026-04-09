@@ -140,118 +140,130 @@ interface ScheduleItem {
     id: number;
     group: string;
     venue: string;
-    date: LocalizedString;
-    pairing: [number, number]; // Index in group (0-3)
+    dateTimeUtc: string; // ISO 8601 UTC — source of truth for all timezone conversions
+    pairing: [number, number]; // Index in group teams array (0-3)
 }
 
-// Full Match Schedule 1-72
+// Full Match Schedule — 72 group stage matches
+// All times in UTC (EDT = UTC-4). Source: FIFA official / NBC Sports / Sky Sports
 const SCHEDULE_DATA: ScheduleItem[] = [
+    // ── ROUND 1 ──────────────────────────────────────────────────────────────
     // June 11
-    { id: 1, group: 'A', venue: 'Estadio Ciudad de México', date: {en: 'Jun 11, 2026', es: '11 de Jun, 2026'}, pairing: [0, 1] }, // Mex vs RSA
-    { id: 2, group: 'A', venue: 'Estadio Guadalajara', date: {en: 'Jun 11, 2026', es: '11 de Jun, 2026'}, pairing: [2, 3] },
+    { id:  1, group: 'A', venue: 'azteca',       dateTimeUtc: '2026-06-11T19:00:00Z', pairing: [0, 1] }, // MEX vs RSA  3pm ET
+    { id:  2, group: 'A', venue: 'guadalajara',  dateTimeUtc: '2026-06-12T02:00:00Z', pairing: [2, 3] }, // KOR vs CZE  10pm ET Jun11
     // June 12
-    { id: 3, group: 'B', venue: 'Toronto Stadium', date: {en: 'Jun 12, 2026', es: '12 de Jun, 2026'}, pairing: [0, 1] }, // Can vs Ita
-    { id: 4, group: 'D', venue: 'Los Angeles Stadium', date: {en: 'Jun 12, 2026', es: '12 de Jun, 2026'}, pairing: [0, 1] }, // USA vs Par
+    { id:  3, group: 'B', venue: 'toronto',      dateTimeUtc: '2026-06-12T19:00:00Z', pairing: [0, 1] }, // CAN vs BIH  3pm ET
+    { id:  4, group: 'D', venue: 'los angeles',  dateTimeUtc: '2026-06-13T01:00:00Z', pairing: [0, 1] }, // USA vs PAR  9pm ET Jun12
     // June 13
-    { id: 5, group: 'C', venue: 'Boston Stadium', date: {en: 'Jun 13, 2026', es: '13 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 6, group: 'D', venue: 'BC Place Vancouver', date: {en: 'Jun 13, 2026', es: '13 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 7, group: 'C', venue: 'Nueva York Nueva Jersey Stadium', date: {en: 'Jun 13, 2026', es: '13 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 8, group: 'B', venue: 'San Francisco Bay Area Stadium', date: {en: 'Jun 13, 2026', es: '13 de Jun, 2026'}, pairing: [2, 3] },
+    { id:  5, group: 'B', venue: 'san francisco',dateTimeUtc: '2026-06-13T19:00:00Z', pairing: [2, 3] }, // QAT vs SUI  3pm ET
+    { id:  6, group: 'C', venue: 'new york',     dateTimeUtc: '2026-06-13T22:00:00Z', pairing: [0, 1] }, // BRA vs MAR  6pm ET
+    { id:  7, group: 'C', venue: 'boston',       dateTimeUtc: '2026-06-14T01:00:00Z', pairing: [2, 3] }, // HAI vs SCO  9pm ET Jun13
+    { id:  8, group: 'D', venue: 'vancouver',    dateTimeUtc: '2026-06-14T04:00:00Z', pairing: [2, 3] }, // AUS vs TUR  midnight ET Jun13
     // June 14
-    { id: 9, group: 'E', venue: 'Philadelphia Stadium', date: {en: 'Jun 14, 2026', es: '14 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 10, group: 'E', venue: 'Houston Stadium', date: {en: 'Jun 14, 2026', es: '14 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 11, group: 'F', venue: 'Dallas Stadium', date: {en: 'Jun 14, 2026', es: '14 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 12, group: 'F', venue: 'Estadio Monterrey', date: {en: 'Jun 14, 2026', es: '14 de Jun, 2026'}, pairing: [2, 3] },
+    { id:  9, group: 'E', venue: 'houston',      dateTimeUtc: '2026-06-14T17:00:00Z', pairing: [0, 1] }, // GER vs CUW  1pm ET
+    { id: 10, group: 'F', venue: 'dallas',       dateTimeUtc: '2026-06-14T20:00:00Z', pairing: [0, 1] }, // NED vs JPN  4pm ET
+    { id: 11, group: 'E', venue: 'philadelphia', dateTimeUtc: '2026-06-14T23:00:00Z', pairing: [2, 3] }, // CIV vs ECU  7pm ET
+    { id: 12, group: 'F', venue: 'monterrey',    dateTimeUtc: '2026-06-15T02:00:00Z', pairing: [2, 3] }, // SWE vs TUN  10pm ET Jun14
     // June 15
-    { id: 13, group: 'H', venue: 'Miami Stadium', date: {en: 'Jun 15, 2026', es: '15 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 14, group: 'H', venue: 'Atlanta Stadium', date: {en: 'Jun 15, 2026', es: '15 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 15, group: 'G', venue: 'Los Angeles Stadium', date: {en: 'Jun 15, 2026', es: '15 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 16, group: 'G', venue: 'Seattle Stadium', date: {en: 'Jun 15, 2026', es: '15 de Jun, 2026'}, pairing: [2, 3] },
+    { id: 13, group: 'H', venue: 'atlanta',      dateTimeUtc: '2026-06-15T16:00:00Z', pairing: [0, 1] }, // ESP vs CPV  12pm ET
+    { id: 14, group: 'G', venue: 'seattle',      dateTimeUtc: '2026-06-15T19:00:00Z', pairing: [0, 1] }, // BEL vs EGY  3pm ET
+    { id: 15, group: 'H', venue: 'miami',        dateTimeUtc: '2026-06-15T22:00:00Z', pairing: [2, 3] }, // KSA vs URU  6pm ET
+    { id: 16, group: 'G', venue: 'los angeles',  dateTimeUtc: '2026-06-16T01:00:00Z', pairing: [2, 3] }, // IRN vs NZL  9pm ET Jun15
     // June 16
-    { id: 17, group: 'I', venue: 'New York New Jersey Stadium', date: {en: 'Jun 16, 2026', es: '16 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 18, group: 'I', venue: 'Boston Stadium', date: {en: 'Jun 16, 2026', es: '16 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 19, group: 'J', venue: 'Kansas City Stadium', date: {en: 'Jun 16, 2026', es: '16 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 20, group: 'J', venue: 'San Francisco Bay Area Stadium', date: {en: 'Jun 16, 2026', es: '16 de Jun, 2026'}, pairing: [2, 3] },
+    { id: 17, group: 'I', venue: 'new york',     dateTimeUtc: '2026-06-16T19:00:00Z', pairing: [0, 1] }, // FRA vs SEN  3pm ET
+    { id: 18, group: 'I', venue: 'boston',       dateTimeUtc: '2026-06-16T22:00:00Z', pairing: [2, 3] }, // IRQ vs NOR  6pm ET
+    { id: 19, group: 'J', venue: 'kansas',       dateTimeUtc: '2026-06-17T01:00:00Z', pairing: [0, 1] }, // ARG vs ALG  9pm ET Jun16
+    { id: 20, group: 'J', venue: 'san francisco',dateTimeUtc: '2026-06-17T04:00:00Z', pairing: [2, 3] }, // AUT vs JOR  midnight ET Jun16
     // June 17
-    { id: 21, group: 'L', venue: 'Toronto Stadium', date: {en: 'Jun 17, 2026', es: '17 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 22, group: 'L', venue: 'Dallas Stadium', date: {en: 'Jun 17, 2026', es: '17 de Jun, 2026'}, pairing: [2, 3] },
-    { id: 23, group: 'K', venue: 'Houston Stadium', date: {en: 'Jun 17, 2026', es: '17 de Jun, 2026'}, pairing: [0, 1] },
-    { id: 24, group: 'K', venue: 'Estadio Ciudad de México', date: {en: 'Jun 17, 2026', es: '17 de Jun, 2026'}, pairing: [2, 3] },
-    
-    // Round 2
+    { id: 21, group: 'K', venue: 'houston',      dateTimeUtc: '2026-06-17T17:00:00Z', pairing: [0, 1] }, // POR vs COD  1pm ET
+    { id: 22, group: 'L', venue: 'dallas',       dateTimeUtc: '2026-06-17T20:00:00Z', pairing: [0, 1] }, // ENG vs CRO  4pm ET
+    { id: 23, group: 'L', venue: 'toronto',      dateTimeUtc: '2026-06-17T23:00:00Z', pairing: [2, 3] }, // GHA vs PAN  7pm ET
+    { id: 24, group: 'K', venue: 'azteca',       dateTimeUtc: '2026-06-18T02:00:00Z', pairing: [2, 3] }, // UZB vs COL  10pm ET Jun17
+
+    // ── ROUND 2 ──────────────────────────────────────────────────────────────
     // June 18
-    { id: 25, group: 'A', venue: 'Atlanta Stadium', date: {en: 'Jun 18, 2026', es: '18 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 26, group: 'B', venue: 'Los Angeles Stadium', date: {en: 'Jun 18, 2026', es: '18 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 27, group: 'B', venue: 'BC Place Vancouver', date: {en: 'Jun 18, 2026', es: '18 de Jun, 2026'}, pairing: [0, 2] }, // Can match
-    { id: 28, group: 'A', venue: 'Estadio Guadalajara', date: {en: 'Jun 18, 2026', es: '18 de Jun, 2026'}, pairing: [0, 3] }, // Mex Match
+    { id: 25, group: 'A', venue: 'atlanta',      dateTimeUtc: '2026-06-18T16:00:00Z', pairing: [3, 1] }, // CZE vs RSA  12pm ET
+    { id: 26, group: 'B', venue: 'los angeles',  dateTimeUtc: '2026-06-18T19:00:00Z', pairing: [3, 1] }, // SUI vs BIH  3pm ET
+    { id: 27, group: 'B', venue: 'vancouver',    dateTimeUtc: '2026-06-18T22:00:00Z', pairing: [0, 2] }, // CAN vs QAT  6pm ET
+    { id: 28, group: 'A', venue: 'guadalajara',  dateTimeUtc: '2026-06-19T01:00:00Z', pairing: [0, 2] }, // MEX vs KOR  9pm ET Jun18
     // June 19
-    { id: 29, group: 'C', venue: 'Philadelphia Stadium', date: {en: 'Jun 19, 2026', es: '19 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 30, group: 'C', venue: 'Boston Stadium', date: {en: 'Jun 19, 2026', es: '19 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 31, group: 'D', venue: 'San Francisco Bay Area Stadium', date: {en: 'Jun 19, 2026', es: '19 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 32, group: 'D', venue: 'Seattle Stadium', date: {en: 'Jun 19, 2026', es: '19 de Jun, 2026'}, pairing: [0, 2] }, // USA Match
+    { id: 29, group: 'D', venue: 'seattle',      dateTimeUtc: '2026-06-19T19:00:00Z', pairing: [0, 2] }, // USA vs AUS  3pm ET
+    { id: 30, group: 'C', venue: 'boston',       dateTimeUtc: '2026-06-19T22:00:00Z', pairing: [3, 1] }, // SCO vs MAR  6pm ET
+    { id: 31, group: 'C', venue: 'philadelphia', dateTimeUtc: '2026-06-20T01:00:00Z', pairing: [0, 2] }, // BRA vs HAI  9pm ET Jun19
+    { id: 32, group: 'D', venue: 'san francisco',dateTimeUtc: '2026-06-20T04:00:00Z', pairing: [3, 1] }, // TUR vs PAR  midnight ET Jun19
     // June 20
-    { id: 33, group: 'E', venue: 'Toronto Stadium', date: {en: 'Jun 20, 2026', es: '20 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 34, group: 'E', venue: 'Kansas City Stadium', date: {en: 'Jun 20, 2026', es: '20 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 35, group: 'F', venue: 'Houston Stadium', date: {en: 'Jun 20, 2026', es: '20 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 36, group: 'F', venue: 'Estadio Monterrey', date: {en: 'Jun 20, 2026', es: '20 de Jun, 2026'}, pairing: [1, 3] },
+    { id: 33, group: 'F', venue: 'houston',      dateTimeUtc: '2026-06-20T17:00:00Z', pairing: [0, 2] }, // NED vs SWE  1pm ET
+    { id: 34, group: 'E', venue: 'toronto',      dateTimeUtc: '2026-06-20T20:00:00Z', pairing: [0, 2] }, // GER vs CIV  4pm ET
+    { id: 35, group: 'E', venue: 'kansas',       dateTimeUtc: '2026-06-21T00:00:00Z', pairing: [3, 1] }, // ECU vs CUW  8pm ET Jun20
+    { id: 36, group: 'F', venue: 'monterrey',    dateTimeUtc: '2026-06-21T04:00:00Z', pairing: [3, 1] }, // TUN vs JPN  midnight ET Jun20
     // June 21
-    { id: 37, group: 'H', venue: 'Miami Stadium', date: {en: 'Jun 21, 2026', es: '21 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 38, group: 'H', venue: 'Atlanta Stadium', date: {en: 'Jun 21, 2026', es: '21 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 39, group: 'G', venue: 'Los Angeles Stadium', date: {en: 'Jun 21, 2026', es: '21 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 40, group: 'G', venue: 'BC Place Vancouver', date: {en: 'Jun 21, 2026', es: '21 de Jun, 2026'}, pairing: [1, 3] },
+    { id: 37, group: 'H', venue: 'atlanta',      dateTimeUtc: '2026-06-21T16:00:00Z', pairing: [0, 2] }, // ESP vs KSA  12pm ET
+    { id: 38, group: 'G', venue: 'los angeles',  dateTimeUtc: '2026-06-21T19:00:00Z', pairing: [0, 2] }, // BEL vs IRN  3pm ET
+    { id: 39, group: 'H', venue: 'miami',        dateTimeUtc: '2026-06-21T22:00:00Z', pairing: [3, 1] }, // URU vs CPV  6pm ET
+    { id: 40, group: 'G', venue: 'vancouver',    dateTimeUtc: '2026-06-22T01:00:00Z', pairing: [3, 1] }, // NZL vs EGY  9pm ET Jun21
     // June 22
-    { id: 41, group: 'I', venue: 'Nueva York Nueva Jersey Stadium', date: {en: 'Jun 22, 2026', es: '22 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 42, group: 'I', venue: 'Philadelphia Stadium', date: {en: 'Jun 22, 2026', es: '22 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 43, group: 'J', venue: 'Dallas Stadium', date: {en: 'Jun 22, 2026', es: '22 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 44, group: 'J', venue: 'San Francisco Bay Area Stadium', date: {en: 'Jun 22, 2026', es: '22 de Jun, 2026'}, pairing: [1, 3] },
+    { id: 41, group: 'J', venue: 'dallas',       dateTimeUtc: '2026-06-22T17:00:00Z', pairing: [0, 2] }, // ARG vs AUT  1pm ET
+    { id: 42, group: 'I', venue: 'philadelphia', dateTimeUtc: '2026-06-22T21:00:00Z', pairing: [0, 2] }, // FRA vs IRQ  5pm ET
+    { id: 43, group: 'I', venue: 'new york',     dateTimeUtc: '2026-06-23T00:00:00Z', pairing: [3, 1] }, // NOR vs SEN  8pm ET Jun22
+    { id: 44, group: 'J', venue: 'san francisco',dateTimeUtc: '2026-06-23T03:00:00Z', pairing: [3, 1] }, // JOR vs ALG  11pm ET Jun22
     // June 23
-    { id: 45, group: 'L', venue: 'Boston Stadium', date: {en: 'Jun 23, 2026', es: '23 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 46, group: 'L', venue: 'Toronto Stadium', date: {en: 'Jun 23, 2026', es: '23 de Jun, 2026'}, pairing: [1, 3] },
-    { id: 47, group: 'K', venue: 'Houston Stadium', date: {en: 'Jun 23, 2026', es: '23 de Jun, 2026'}, pairing: [0, 2] },
-    { id: 48, group: 'K', venue: 'Estadio Guadalajara', date: {en: 'Jun 23, 2026', es: '23 de Jun, 2026'}, pairing: [1, 3] },
-    
-    // Round 3
+    { id: 45, group: 'K', venue: 'houston',      dateTimeUtc: '2026-06-23T17:00:00Z', pairing: [0, 2] }, // POR vs UZB  1pm ET
+    { id: 46, group: 'L', venue: 'boston',       dateTimeUtc: '2026-06-23T20:00:00Z', pairing: [0, 2] }, // ENG vs GHA  4pm ET
+    { id: 47, group: 'L', venue: 'toronto',      dateTimeUtc: '2026-06-23T23:00:00Z', pairing: [3, 1] }, // PAN vs CRO  7pm ET
+    { id: 48, group: 'K', venue: 'guadalajara',  dateTimeUtc: '2026-06-24T02:00:00Z', pairing: [3, 1] }, // COL vs COD  10pm ET Jun23
+
+    // ── ROUND 3 (simultaneous within each group) ──────────────────────────────
     // June 24
-    { id: 49, group: 'C', venue: 'Miami Stadium', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 50, group: 'C', venue: 'Atlanta Stadium', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 51, group: 'B', venue: 'BC Place Vancouver', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [0, 3] }, // Can Match
-    { id: 52, group: 'B', venue: 'Seattle Stadium', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 53, group: 'A', venue: 'Estadio Ciudad de México', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [0, 2] }, // Mex Match (Seed vs 3rd)
-    { id: 54, group: 'A', venue: 'Estadio Monterrey', date: {en: 'Jun 24, 2026', es: '24 de Jun, 2026'}, pairing: [1, 3] },
+    { id: 49, group: 'B', venue: 'vancouver',    dateTimeUtc: '2026-06-24T19:00:00Z', pairing: [3, 0] }, // SUI vs CAN  3pm ET
+    { id: 50, group: 'B', venue: 'seattle',      dateTimeUtc: '2026-06-24T19:00:00Z', pairing: [1, 2] }, // BIH vs QAT  3pm ET
+    { id: 51, group: 'C', venue: 'miami',        dateTimeUtc: '2026-06-24T22:00:00Z', pairing: [3, 0] }, // SCO vs BRA  6pm ET
+    { id: 52, group: 'C', venue: 'atlanta',      dateTimeUtc: '2026-06-24T22:00:00Z', pairing: [1, 2] }, // MAR vs HAI  6pm ET
+    { id: 53, group: 'A', venue: 'azteca',       dateTimeUtc: '2026-06-25T01:00:00Z', pairing: [3, 0] }, // CZE vs MEX  9pm ET Jun24
+    { id: 54, group: 'A', venue: 'monterrey',    dateTimeUtc: '2026-06-25T01:00:00Z', pairing: [1, 2] }, // RSA vs KOR  9pm ET Jun24
     // June 25
-    { id: 55, group: 'E', venue: 'Philadelphia Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 56, group: 'E', venue: 'New York New Jersey Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 57, group: 'F', venue: 'Dallas Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 58, group: 'F', venue: 'Kansas City Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 59, group: 'D', venue: 'Los Angeles Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [3, 0] }, // USA Match
-    { id: 60, group: 'D', venue: 'San Francisco Bay Area Stadium', date: {en: 'Jun 25, 2026', es: '25 de Jun, 2026'}, pairing: [1, 2] },
+    { id: 55, group: 'E', venue: 'new york',     dateTimeUtc: '2026-06-25T20:00:00Z', pairing: [3, 0] }, // ECU vs GER  4pm ET
+    { id: 56, group: 'E', venue: 'philadelphia', dateTimeUtc: '2026-06-25T20:00:00Z', pairing: [1, 2] }, // CUW vs CIV  4pm ET
+    { id: 57, group: 'F', venue: 'dallas',       dateTimeUtc: '2026-06-25T23:00:00Z', pairing: [1, 2] }, // JPN vs SWE  7pm ET
+    { id: 58, group: 'F', venue: 'kansas',       dateTimeUtc: '2026-06-25T23:00:00Z', pairing: [3, 0] }, // TUN vs NED  7pm ET
+    { id: 59, group: 'D', venue: 'los angeles',  dateTimeUtc: '2026-06-26T02:00:00Z', pairing: [3, 0] }, // TUR vs USA  10pm ET Jun25
+    { id: 60, group: 'D', venue: 'san francisco',dateTimeUtc: '2026-06-26T02:00:00Z', pairing: [1, 2] }, // PAR vs AUS  10pm ET Jun25
     // June 26
-    { id: 61, group: 'I', venue: 'Boston Stadium', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 62, group: 'I', venue: 'Toronto Stadium', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 63, group: 'G', venue: 'Seattle Stadium', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 64, group: 'G', venue: 'BC Place Vancouver', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 65, group: 'H', venue: 'Houston Stadium', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 66, group: 'H', venue: 'Estadio Guadalajara', date: {en: 'Jun 26, 2026', es: '26 de Jun, 2026'}, pairing: [1, 2] },
+    { id: 61, group: 'I', venue: 'boston',       dateTimeUtc: '2026-06-26T19:00:00Z', pairing: [3, 0] }, // NOR vs FRA  3pm ET
+    { id: 62, group: 'I', venue: 'toronto',      dateTimeUtc: '2026-06-26T19:00:00Z', pairing: [1, 2] }, // SEN vs IRQ  3pm ET
+    { id: 63, group: 'H', venue: 'houston',      dateTimeUtc: '2026-06-27T00:00:00Z', pairing: [1, 2] }, // CPV vs KSA  8pm ET Jun26
+    { id: 64, group: 'H', venue: 'guadalajara',  dateTimeUtc: '2026-06-27T00:00:00Z', pairing: [3, 0] }, // URU vs ESP  8pm ET Jun26
+    { id: 65, group: 'G', venue: 'seattle',      dateTimeUtc: '2026-06-27T03:00:00Z', pairing: [1, 2] }, // EGY vs IRN  11pm ET Jun26
+    { id: 66, group: 'G', venue: 'vancouver',    dateTimeUtc: '2026-06-27T03:00:00Z', pairing: [3, 0] }, // NZL vs BEL  11pm ET Jun26
     // June 27
-    { id: 67, group: 'L', venue: 'New York New Jersey Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 68, group: 'L', venue: 'Philadelphia Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 69, group: 'J', venue: 'Kansas City Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 70, group: 'J', venue: 'Dallas Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [1, 2] },
-    { id: 71, group: 'K', venue: 'Miami Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [3, 0] },
-    { id: 72, group: 'K', venue: 'Atlanta Stadium', date: {en: 'Jun 27, 2026', es: '27 de Jun, 2026'}, pairing: [1, 2] },
+    { id: 67, group: 'L', venue: 'new york',     dateTimeUtc: '2026-06-27T21:00:00Z', pairing: [3, 0] }, // PAN vs ENG  5pm ET
+    { id: 68, group: 'L', venue: 'philadelphia', dateTimeUtc: '2026-06-27T21:00:00Z', pairing: [1, 2] }, // CRO vs GHA  5pm ET
+    { id: 69, group: 'K', venue: 'miami',        dateTimeUtc: '2026-06-27T23:30:00Z', pairing: [3, 0] }, // COL vs POR  7:30pm ET
+    { id: 70, group: 'K', venue: 'atlanta',      dateTimeUtc: '2026-06-27T23:30:00Z', pairing: [1, 2] }, // COD vs UZB  7:30pm ET
+    { id: 71, group: 'J', venue: 'kansas',       dateTimeUtc: '2026-06-28T02:00:00Z', pairing: [1, 2] }, // ALG vs AUT  10pm ET Jun27
+    { id: 72, group: 'J', venue: 'dallas',       dateTimeUtc: '2026-06-28T02:00:00Z', pairing: [3, 0] }, // JOR vs ARG  10pm ET Jun27
 ];
 
+// Helper to build a LocalizedString date from a UTC ISO string (uses UTC calendar date as fallback)
+const utcToLocalizedDate = (iso: string): LocalizedString => {
+    const d = new Date(iso);
+    const day = d.getUTCDate();
+    const month = d.getUTCMonth();
+    const year = d.getUTCFullYear();
+    const mEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month];
+    const mEs = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][month];
+    return { en: `${mEn} ${day}, ${year}`, es: `${day} de ${mEs}, ${year}` };
+};
+
 export const generateGroupSchedule = (): Match[] => {
-    const times = ['13:00', '16:00', '19:00', '21:00'];
     return SCHEDULE_DATA.map(s => {
         const groupObj = GROUPS.find(g => g.id === s.group);
         if(!groupObj) throw new Error('Invalid Group');
-        
+
         const homeId = groupObj.teams[s.pairing[0]];
         const awayId = groupObj.teams[s.pairing[1]];
 
         return {
-            id: `M${s.id.toString().padStart(2, '0')}`, // M01, M02...
+            id: `M${s.id.toString().padStart(2, '0')}`, // M01, M02…
             homeTeamId: homeId,
             awayTeamId: awayId,
             homeScore: null,
@@ -259,8 +271,8 @@ export const generateGroupSchedule = (): Match[] => {
             isFinished: false,
             stage: 'Group',
             group: s.group,
-            date: s.date,
-            time: times[s.id % 4], // Distribute times cyclically
+            date: utcToLocalizedDate(s.dateTimeUtc),
+            dateTimeUtc: s.dateTimeUtc,
             stadium: findStadium(s.venue)
         };
     });
