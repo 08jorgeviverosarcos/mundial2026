@@ -27,8 +27,9 @@ export interface Match {
   isFinished: boolean;
   stage: 'Group' | 'Round of 32' | 'Round of 16' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Third Place';
   group?: string; // Only for group stage (e.g., "A")
-  date: LocalizedString; // Formatted date string
-  time?: string; // Match time (e.g. "13:00")
+  date: LocalizedString; // Formatted date string (fallback)
+  time?: string; // Match time fallback string
+  dateTimeUtc?: string; // ISO 8601 UTC datetime — source of truth for timezone conversion
   stadium: Stadium;
   winnerId?: string | null; // For knockouts
 }

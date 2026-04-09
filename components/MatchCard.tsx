@@ -87,11 +87,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
         <span className="truncate max-w-[120px]" title={match.stadium.city[language]}>{match.stadium.city[language]}</span>
       </div>
       
-      {/* Date & Time */}
-      <div className="flex justify-center gap-2 text-[10px] text-blue-300 font-mono -mt-1 mb-2">
-          <span>{match.date[language]}</span>
-          {match.time && <span>• {match.time}</span>}
-      </div>
+      {/* Date & Time — converted to user's local timezone via dateTimeUtc */}
+      {(() => {
+          const dt = match.dateTimeUtc ? new Date(match.dateTimeUtc) : null;
+          const locale = language === 'es' ? 'es-ES' : 'en-US';
+          const displayDate = dt
+              ? dt.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+              : match.date[language];
+          const displayTime = dt
+              ? dt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+              : match.time;
+          return (
+              <div className="flex justify-center gap-2 text-[10px] text-blue-300 font-mono -mt-1 mb-2">
+                  <span>{displayDate}</span>
+                  {displayTime && <span>• {displayTime}</span>}
+              </div>
+          );
+      })()}
 
       {/* SEO H3 for Search Engines - Visible but styled subtly */}
       {home && away && (
