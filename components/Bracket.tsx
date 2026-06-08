@@ -28,9 +28,10 @@ export const Bracket: React.FC<BracketProps> = ({ matches, teams, userTeamId, on
     // 1. Are there unfinished matches?
     // 2. Are there ready matches (both teams known) among the unfinished ones?
     const unfinished = stageMatches.filter(m => !m.isFinished);
-    const readyToSimulate = unfinished.filter(m => m.homeTeamId && m.awayTeamId).length > 0;
+    const readyToSimulate = unfinished.filter(m => m.homeTeamId && m.awayTeamId && !m.locked).length > 0;
     const isPhaseSimulating = simulatingId === `BATCH_${stage}`;
     const isPhaseFinished = stageMatches.length > 0 && unfinished.length === 0;
+    const hasNonLockedFinished = stageMatches.some(m => m.isFinished && !m.locked);
 
     return (
         <div className="flex flex-col gap-6 min-w-[340px] px-2">
@@ -57,7 +58,7 @@ export const Bracket: React.FC<BracketProps> = ({ matches, teams, userTeamId, on
                     </button>
                 )}
                 
-                {onRestartPhase && isPhaseFinished && (
+                {onRestartPhase && hasNonLockedFinished && (
                     <button
                         onClick={() => onRestartPhase(stage)}
                         className="px-3 py-1 rounded font-teko text-lg tracking-wide transition-colors shadow-lg flex items-center gap-2 whitespace-nowrap bg-red-600 hover:bg-red-500 shadow-red-900/20 text-white"

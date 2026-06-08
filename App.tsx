@@ -7,6 +7,7 @@ import { MatchCard } from './components/MatchCard';
 import { Bracket } from './components/Bracket';
 // import { AdBanner } from './components/AdBanner'; // Desactivado - pendiente IDs reales de AdSense
 import { simulateMatchWithAI, simulateBatchMatches } from './services/railwayService'; // Updated Import to Railway
+import { fetchOfficialResults, OfficialResult } from './services/officialResultsService';
 import { useLanguage } from './contexts/LanguageContext';
 import { logAppEvent } from './services/firebase';
 
@@ -26,6 +27,36 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [standings, setStandings] = useState<Record<string, GroupStanding>>({});
   const [simulatingId, setSimulatingId] = useState<string | null>(null);
+
+  // Ref para resultados oficiales del Google Sheet (no necesita re-render)
+  const officialResultsRef = React.useRef<Map<string, OfficialResult>>(new Map());
+
+  // Aplica resultados del CSV encima de los matches actuales y los bloquea
+  const applyOfficialResults = (currentMatches: Match[], official: Map<string, OfficialResult>): Match[] => {
+    if (official.size === 0) return currentMatches;
+    return currentMatches.map(match => {
+      const result = official.get(match.id);
+      if (!result) return match;
+
+      let winnerId: string | null = null;
+      if (result.homeScore > result.awayScore) {
+        winnerId = match.homeTeamId;
+      } else if (result.awayScore > result.homeScore) {
+        winnerId = match.awayTeamId;
+      } else if (result.penaltyWinner) {
+        winnerId = result.penaltyWinner;
+      }
+
+      return {
+        ...match,
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        isFinished: true,
+        locked: true,
+        winnerId,
+      };
+    });
+  };
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,54 +82,90 @@ export default function App() {
     }
   }, [language]);
 
-  // Initialize Data (Load from Storage or Default)
+  // Initialize Data (Load from Storage or Default) + fetch resultados oficiales
   useEffect(() => {
-    // Clear stale data from old storage keys
-    OLD_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+    (async () => {
+      OLD_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
 
-    const savedState = localStorage.getItem(STORAGE_KEY);
-    let loaded = false;
+      // Fetch resultados oficiales primero (falla silenciosamente si no hay URL)
+      officialResultsRef.current = await fetchOfficialResults();
 
-    if (savedState) {
+      const savedState = localStorage.getItem(STORAGE_KEY);
+      let loaded = false;
+
+      if (savedState) {
         try {
-            const parsed = JSON.parse(savedState);
-            if (parsed.matches && parsed.matches.length > 0) {
-                const parsedMatches: Match[] = parsed.matches;
-                const hasUnfinishedSavedGroupMatches = parsedMatches.some(
-                  (m: Match) => m.stage === 'Group' && !m.isFinished
-                );
-                const nextAppState =
-                  parsed.appState === AppState.KNOCKOUT_STAGE && hasUnfinishedSavedGroupMatches
-                    ? AppState.GROUP_STAGE
-                    : parsed.appState !== undefined
-                      ? parsed.appState
-                      : AppState.SELECT_TEAM;
+          const parsed = JSON.parse(savedState);
+          if (parsed.matches && parsed.matches.length > 0) {
+            let parsedMatches: Match[] = parsed.matches;
+            const hasUnfinishedSavedGroupMatches = parsedMatches.some(
+              (m: Match) => m.stage === 'Group' && !m.isFinished
+            );
+            const nextAppState =
+              parsed.appState === AppState.KNOCKOUT_STAGE && hasUnfinishedSavedGroupMatches
+                ? AppState.GROUP_STAGE
+                : parsed.appState !== undefined
+                  ? parsed.appState
+                  : AppState.SELECT_TEAM;
 
-                setMatches(parsedMatches);
-                setStandings(parsed.standings || {});
-                setUserTeam(parsed.userTeam);
-                setAppState(nextAppState);
-                loaded = true;
-                logAppEvent('session_start', { loaded_from_storage: true });
+            // Aplicar resultados oficiales encima de lo guardado (el CSV gana)
+            parsedMatches = applyOfficialResults(parsedMatches, officialResultsRef.current);
+
+            // Recalcular standings desde los resultados reales
+            const newStandings = calculateStandingsFromScratch(parsedMatches);
+
+            // Si el bracket ya fue generado, recalcular R32 desde standings reales.
+            // El localStorage puede tener equipos incorrectos en R32 si los resultados
+            // oficiales cambiaron quién clasificó en grupos.
+            const hasKnockoutsInSaved = parsedMatches.some(m => m.stage !== 'Group');
+            if (nextAppState === AppState.KNOCKOUT_STAGE && hasKnockoutsInSaved && officialResultsRef.current.size > 0) {
+              const r32Pairings = calculateR32Pairings(newStandings);
+              r32Pairings.forEach(pairing => {
+                const idx = parsedMatches.findIndex(m => m.id === pairing.id);
+                if (idx !== -1) {
+                  const current = parsedMatches[idx];
+                  // Solo actualizar R32 si no está locked y los equipos cambiaron
+                  if (!current.locked && (current.homeTeamId !== pairing.homeTeamId || current.awayTeamId !== pairing.awayTeamId)) {
+                    parsedMatches[idx] = {
+                      ...current,
+                      homeTeamId: pairing.homeTeamId,
+                      awayTeamId: pairing.awayTeamId,
+                      homeScore: null,
+                      awayScore: null,
+                      isFinished: false,
+                      winnerId: null,
+                    };
+                  }
+                }
+              });
             }
-        } catch (e) {
-            console.error("Error loading saved simulation:", e);
-        }
-    }
 
-    if (!loaded) {
-        // Init matches default
-        const initialMatches = generateGroupSchedule();
+            setMatches(parsedMatches);
+            setStandings(newStandings);
+            setUserTeam(parsed.userTeam);
+            setAppState(nextAppState);
+            loaded = true;
+            logAppEvent('session_start', { loaded_from_storage: true });
+          }
+        } catch (e) {
+          console.error("Error loading saved simulation:", e);
+        }
+      }
+
+      if (!loaded) {
+        let initialMatches = generateGroupSchedule();
+        initialMatches = applyOfficialResults(initialMatches, officialResultsRef.current);
         setMatches(initialMatches);
 
-        // Init standings default
         const initialStandings: Record<string, GroupStanding> = {};
         Object.keys(TEAMS).forEach(teamId => {
           initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
         });
-        setStandings(initialStandings);
+        const standingsWithOfficial = calculateStandingsFromScratch(initialMatches);
+        setStandings(Object.keys(standingsWithOfficial).length > 0 ? standingsWithOfficial : initialStandings);
         logAppEvent('session_start', { loaded_from_storage: false });
-    }
+      }
+    })();
   }, []);
 
   // Track page views when state changes
@@ -160,21 +227,23 @@ export default function App() {
 
   const handleRestart = () => {
       logAppEvent('restart_simulation');
-      // Clear Storage
       localStorage.removeItem(STORAGE_KEY);
-      
-      // Reset State variables
+
       setAppState(AppState.SELECT_TEAM);
       setUserTeam(null);
-      setMatches(generateGroupSchedule());
-      
+
+      // Aplicar oficiales al calendario fresco (resultados reales persisten tras restart)
+      let freshMatches = generateGroupSchedule();
+      freshMatches = applyOfficialResults(freshMatches, officialResultsRef.current);
+      setMatches(freshMatches);
+
       const initialStandings: Record<string, GroupStanding> = {};
       Object.keys(TEAMS).forEach(teamId => {
         initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
       });
-      setStandings(initialStandings);
-      
-      // Reset filters
+      const standingsWithOfficial = calculateStandingsFromScratch(freshMatches);
+      setStandings(Object.keys(standingsWithOfficial).length > 0 ? standingsWithOfficial : initialStandings);
+
       setSearchQuery('');
       setFilterGroup('ALL');
       setFilterTeam('ALL');
@@ -310,6 +379,7 @@ export default function App() {
       logAppEvent('update_score', { match_id: matchId, home: homeScore, away: awayScore });
       const matchIndex = matches.findIndex(m => m.id === matchId);
       if (matchIndex === -1) return;
+      if (matches[matchIndex].locked) return; // Guard: resultado oficial, no editable
 
       const currentMatch = matches[matchIndex];
       let winnerId: string | null = null;
@@ -377,6 +447,7 @@ export default function App() {
 
   const simulateMatch = async (match: Match) => {
     if (!match.homeTeamId || !match.awayTeamId) return;
+    if (match.locked) return; // Guard: resultado oficial, no simulable
     setSimulatingId(match.id);
     logAppEvent('simulate_match_start', { match_id: match.id, stage: match.stage });
 
@@ -445,6 +516,7 @@ export default function App() {
         
         if (targetIndex !== -1 && sourceMatch) {
              const targetMatch = newMatches[targetIndex];
+             if (targetMatch.locked) return; // Guard: no sobreescribir resultado oficial
              // Winner Logic
              const sourceWinner = (sourceMatch.isFinished && sourceMatch.winnerId) ? sourceMatch.winnerId : null;
              
@@ -494,25 +566,29 @@ export default function App() {
              const winner = (sourceMatch.isFinished && sourceMatch.winnerId) ? sourceMatch.winnerId : null;
              if (idxF !== -1) {
                  const t = newMatches[idxF];
-                 if (source === 101) {
-                     if (t.homeTeamId !== winner) { newMatches[idxF] = {...t, homeTeamId: winner, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
-                 } else {
-                     if (t.awayTeamId !== winner) { newMatches[idxF] = {...t, awayTeamId: winner, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                 if (!t.locked) { // Guard: no sobreescribir resultado oficial
+                   if (source === 101) {
+                       if (t.homeTeamId !== winner) { newMatches[idxF] = {...t, homeTeamId: winner, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                   } else {
+                       if (t.awayTeamId !== winner) { newMatches[idxF] = {...t, awayTeamId: winner, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                   }
                  }
              }
 
              // 3rd Place (Loser)
              const idx3 = newMatches.findIndex(m => m.id === `M${target3}`);
-             const loser = (sourceMatch.isFinished && sourceMatch.winnerId && sourceMatch.homeTeamId && sourceMatch.awayTeamId) 
-                            ? (sourceMatch.winnerId === sourceMatch.homeTeamId ? sourceMatch.awayTeamId : sourceMatch.homeTeamId) 
+             const loser = (sourceMatch.isFinished && sourceMatch.winnerId && sourceMatch.homeTeamId && sourceMatch.awayTeamId)
+                            ? (sourceMatch.winnerId === sourceMatch.homeTeamId ? sourceMatch.awayTeamId : sourceMatch.homeTeamId)
                             : null;
-             
+
              if (idx3 !== -1) {
                  const t = newMatches[idx3];
-                 if (source === 101) {
-                     if (t.homeTeamId !== loser) { newMatches[idx3] = {...t, homeTeamId: loser, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
-                 } else {
-                     if (t.awayTeamId !== loser) { newMatches[idx3] = {...t, awayTeamId: loser, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                 if (!t.locked) { // Guard: no sobreescribir resultado oficial
+                   if (source === 101) {
+                       if (t.homeTeamId !== loser) { newMatches[idx3] = {...t, homeTeamId: loser, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                   } else {
+                       if (t.awayTeamId !== loser) { newMatches[idx3] = {...t, awayTeamId: loser, isFinished:false, homeScore:null, awayScore:null, winnerId:null}; changed=true; }
+                   }
                  }
              }
          }
@@ -527,7 +603,7 @@ export default function App() {
 
   const autoSimulateGroup = async () => {
     console.log("autosimulategriou")
-    const unfinishedMatches = matches.filter(m => m.stage === 'Group' && !m.isFinished);
+    const unfinishedMatches = matches.filter(m => m.stage === 'Group' && !m.isFinished && !m.locked);
     if (unfinishedMatches.length === 0) return;
 
     setSimulatingId('BATCH');
@@ -588,7 +664,7 @@ export default function App() {
 
   const handleSimulatePhase = async (stage: Match['stage']) => {
       // Only simulate matches that are ready (have both teams) and not finished
-      const matchesToSimulate = matches.filter(m => m.stage === stage && !m.isFinished && m.homeTeamId && m.awayTeamId);
+      const matchesToSimulate = matches.filter(m => m.stage === stage && !m.isFinished && !m.locked && m.homeTeamId && m.awayTeamId);
       
       if (matchesToSimulate.length === 0) return;
 
@@ -626,7 +702,7 @@ export default function App() {
   const handleRestartPhase = (stage: Match['stage']) => {
       logAppEvent('restart_phase', { stage });
       const updatedMatches = matches.map(m => {
-          if (m.stage === stage) {
+          if (m.stage === stage && !m.locked) { // No tocar resultados oficiales
               return {
                   ...m,
                   homeScore: null,
@@ -722,7 +798,10 @@ export default function App() {
     sfPlan.forEach(p  => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, 'Semi-Final',     null, null, p.date, p.ven, p.dateTimeUtc)));
     fPlan.forEach((p, idx) => !existingIds.has(`M${p.m}`) && newMatches.push(create(p.m, idx === 0 ? 'Third Place' : 'Final', null, null, p.date, p.ven, p.dateTimeUtc)));
 
-    setMatches(prev => [...prev, ...newMatches]);
+    setMatches(prev => {
+      const combined = [...prev, ...newMatches];
+      return applyOfficialResults(combined, officialResultsRef.current);
+    });
     setAppState(AppState.KNOCKOUT_STAGE);
   };
 

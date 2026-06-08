@@ -32,6 +32,7 @@ export interface Match {
   dateTimeUtc?: string; // ISO 8601 UTC datetime — source of truth for timezone conversion
   stadium: Stadium;
   winnerId?: string | null; // For knockouts
+  locked?: boolean; // true = resultado oficial del sheet, no editable
 }
 
 export interface Group {

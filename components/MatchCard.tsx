@@ -66,11 +66,29 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
   const showPenaltySelector = isEditing && isKnockout && !isNaN(hScore) && !isNaN(aScore) && hScore === aScore;
 
   return (
-    <div className={`relative overflow-visible group rounded-xl border ${isUserMatch ? 'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'border-white/10'} bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3 min-w-[300px]`}>
-      
-      {/* Edit Button (Always Visible) */}
-      {onUpdateScore && home && away && !isEditing && (
-          <button 
+    <div className={`relative overflow-visible group rounded-xl border ${
+      match.locked
+        ? 'border-green-500/40 shadow-[0_0_14px_rgba(34,197,94,0.12)]'
+        : isUserMatch
+          ? 'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
+          : 'border-white/10'
+    } bg-slate-900/60 backdrop-blur-md p-4 flex flex-col gap-3 min-w-[300px]`}>
+
+      {/* Banner resultado oficial — se extiende al borde de la card */}
+      {match.locked && (
+        <div className="flex items-center justify-center gap-1.5 -mx-4 -mt-4 mb-1 py-1.5 bg-green-900/20 border-b border-green-500/20 rounded-t-xl">
+          <svg className="w-3 h-3 text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+          <span className="text-[10px] text-green-400 uppercase font-bold tracking-widest">
+            {language === 'es' ? 'Resultado oficial' : 'Official result'}
+          </span>
+        </div>
+      )}
+
+      {/* Edit Button — oculto si el partido está bloqueado */}
+      {onUpdateScore && home && away && !isEditing && !match.locked && (
+          <button
             onClick={handleEditClick}
             className="absolute top-2 right-2 p-1 text-gray-500 hover:text-white transition-colors z-10"
             title={t.edit}
@@ -205,12 +223,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
 
       {/* Footer */}
       <div className="min-h-[24px] flex items-center justify-center">
-        {!isEditing && (
+        {!isEditing && !match.locked && (
             match.isFinished ? (
-               <div className="h-2"></div> 
+               <div className="h-2"></div>
             ) : (
             home && away && onSimulate && (
-                <button 
+                <button
                 onClick={() => onSimulate(match)}
                 disabled={loading}
                 className={`text-xs px-4 py-1 rounded-full uppercase tracking-wider font-bold transition-all
@@ -222,6 +240,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, teams, userTeamId, 
             )
             )
         )}
+        {!isEditing && match.locked && <div className="h-2"></div>}
       </div>
     </div>
   );
