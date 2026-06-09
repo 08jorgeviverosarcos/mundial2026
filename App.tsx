@@ -23,9 +23,16 @@ const OLD_STORAGE_KEYS = ['FIFA26_SIM_STATE_V1'];
 export default function App() {
   const { language, setLanguage, t } = useLanguage();
   const [appState, setAppState] = useState<AppState>(AppState.SELECT_TEAM);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [userTeam, setUserTeam] = useState<Team | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [standings, setStandings] = useState<Record<string, GroupStanding>>({});
+  const [standings, setStandings] = useState<Record<string, GroupStanding>>(() => {
+    const initial: Record<string, GroupStanding> = {};
+    Object.keys(TEAMS).forEach(teamId => {
+      initial[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+    });
+    return initial;
+  });
   const [simulatingId, setSimulatingId] = useState<string | null>(null);
 
   // Ref para resultados oficiales del Google Sheet (no necesita re-render)
@@ -85,85 +92,89 @@ export default function App() {
   // Initialize Data (Load from Storage or Default) + fetch resultados oficiales
   useEffect(() => {
     (async () => {
-      OLD_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+      try {
+        OLD_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
 
-      // Fetch resultados oficiales primero (falla silenciosamente si no hay URL)
-      officialResultsRef.current = await fetchOfficialResults();
+        // Fetch resultados oficiales primero (falla silenciosamente si no hay URL)
+        officialResultsRef.current = await fetchOfficialResults();
 
-      const savedState = localStorage.getItem(STORAGE_KEY);
-      let loaded = false;
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        let loaded = false;
 
-      if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState);
-          if (parsed.matches && parsed.matches.length > 0) {
-            let parsedMatches: Match[] = parsed.matches;
-            const hasUnfinishedSavedGroupMatches = parsedMatches.some(
-              (m: Match) => m.stage === 'Group' && !m.isFinished
-            );
-            const nextAppState =
-              parsed.appState === AppState.KNOCKOUT_STAGE && hasUnfinishedSavedGroupMatches
-                ? AppState.GROUP_STAGE
-                : parsed.appState !== undefined
-                  ? parsed.appState
-                  : AppState.SELECT_TEAM;
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            if (parsed.matches && parsed.matches.length > 0) {
+              let parsedMatches: Match[] = parsed.matches;
+              const hasUnfinishedSavedGroupMatches = parsedMatches.some(
+                (m: Match) => m.stage === 'Group' && !m.isFinished
+              );
+              const nextAppState =
+                parsed.appState === AppState.KNOCKOUT_STAGE && hasUnfinishedSavedGroupMatches
+                  ? AppState.GROUP_STAGE
+                  : parsed.appState !== undefined
+                    ? parsed.appState
+                    : AppState.SELECT_TEAM;
 
-            // Aplicar resultados oficiales encima de lo guardado (el CSV gana)
-            parsedMatches = applyOfficialResults(parsedMatches, officialResultsRef.current);
+              // Aplicar resultados oficiales encima de lo guardado (el CSV gana)
+              parsedMatches = applyOfficialResults(parsedMatches, officialResultsRef.current);
 
-            // Recalcular standings desde los resultados reales
-            const newStandings = calculateStandingsFromScratch(parsedMatches);
+              // Recalcular standings desde los resultados reales
+              const newStandings = calculateStandingsFromScratch(parsedMatches);
 
-            // Si el bracket ya fue generado, recalcular R32 desde standings reales.
-            // El localStorage puede tener equipos incorrectos en R32 si los resultados
-            // oficiales cambiaron quién clasificó en grupos.
-            const hasKnockoutsInSaved = parsedMatches.some(m => m.stage !== 'Group');
-            if (nextAppState === AppState.KNOCKOUT_STAGE && hasKnockoutsInSaved && officialResultsRef.current.size > 0) {
-              const r32Pairings = calculateR32Pairings(newStandings);
-              r32Pairings.forEach(pairing => {
-                const idx = parsedMatches.findIndex(m => m.id === pairing.id);
-                if (idx !== -1) {
-                  const current = parsedMatches[idx];
-                  // Solo actualizar R32 si no está locked y los equipos cambiaron
-                  if (!current.locked && (current.homeTeamId !== pairing.homeTeamId || current.awayTeamId !== pairing.awayTeamId)) {
-                    parsedMatches[idx] = {
-                      ...current,
-                      homeTeamId: pairing.homeTeamId,
-                      awayTeamId: pairing.awayTeamId,
-                      homeScore: null,
-                      awayScore: null,
-                      isFinished: false,
-                      winnerId: null,
-                    };
+              // Si el bracket ya fue generado, recalcular R32 desde standings reales.
+              // El localStorage puede tener equipos incorrectos en R32 si los resultados
+              // oficiales cambiaron quién clasificó en grupos.
+              const hasKnockoutsInSaved = parsedMatches.some(m => m.stage !== 'Group');
+              if (nextAppState === AppState.KNOCKOUT_STAGE && hasKnockoutsInSaved && officialResultsRef.current.size > 0) {
+                const r32Pairings = calculateR32Pairings(newStandings);
+                r32Pairings.forEach(pairing => {
+                  const idx = parsedMatches.findIndex(m => m.id === pairing.id);
+                  if (idx !== -1) {
+                    const current = parsedMatches[idx];
+                    // Solo actualizar R32 si no está locked y los equipos cambiaron
+                    if (!current.locked && (current.homeTeamId !== pairing.homeTeamId || current.awayTeamId !== pairing.awayTeamId)) {
+                      parsedMatches[idx] = {
+                        ...current,
+                        homeTeamId: pairing.homeTeamId,
+                        awayTeamId: pairing.awayTeamId,
+                        homeScore: null,
+                        awayScore: null,
+                        isFinished: false,
+                        winnerId: null,
+                      };
+                    }
                   }
-                }
-              });
+                });
+              }
+
+              setMatches(parsedMatches);
+              setStandings(newStandings);
+              setUserTeam(parsed.userTeam);
+              setAppState(nextAppState);
+              loaded = true;
+              logAppEvent('session_start', { loaded_from_storage: true });
             }
-
-            setMatches(parsedMatches);
-            setStandings(newStandings);
-            setUserTeam(parsed.userTeam);
-            setAppState(nextAppState);
-            loaded = true;
-            logAppEvent('session_start', { loaded_from_storage: true });
+          } catch (e) {
+            console.error("Error loading saved simulation:", e);
           }
-        } catch (e) {
-          console.error("Error loading saved simulation:", e);
         }
-      }
 
-      if (!loaded) {
-        let initialMatches = generateGroupSchedule();
-        initialMatches = applyOfficialResults(initialMatches, officialResultsRef.current);
-        setMatches(initialMatches);
+        if (!loaded) {
+          let initialMatches = generateGroupSchedule();
+          initialMatches = applyOfficialResults(initialMatches, officialResultsRef.current);
+          setMatches(initialMatches);
 
-        const initialStandings: Record<string, GroupStanding> = {};
-        Object.keys(TEAMS).forEach(teamId => {
-          initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
-        });
-        const standingsWithOfficial = calculateStandingsFromScratch(initialMatches);
-        setStandings(Object.keys(standingsWithOfficial).length > 0 ? standingsWithOfficial : initialStandings);
-        logAppEvent('session_start', { loaded_from_storage: false });
+          const initialStandings: Record<string, GroupStanding> = {};
+          Object.keys(TEAMS).forEach(teamId => {
+            initialStandings[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+          });
+          const standingsWithOfficial = calculateStandingsFromScratch(initialMatches);
+          setStandings(Object.keys(standingsWithOfficial).length > 0 ? standingsWithOfficial : initialStandings);
+          logAppEvent('session_start', { loaded_from_storage: false });
+        }
+      } finally {
+        setIsInitializing(false);
       }
     })();
   }, []);
@@ -893,6 +904,17 @@ export default function App() {
         </div>
     </nav>
   );
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-400 text-sm animate-pulse">
+          {language === 'es' ? 'Cargando...' : 'Loading...'}
+        </p>
+      </div>
+    );
+  }
 
   if (appState === AppState.SELECT_TEAM) {
     return (
