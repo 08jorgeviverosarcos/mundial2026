@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TEAMS, GROUPS, generateGroupSchedule, STADIUMS, findStadium } from './constants';
 import { Team, Match, GroupStanding, LocalizedString } from './types';
+import THIRD_PLACE_ALLOCATION from './thirdPlaceAllocation.json';
 import { TeamSelector } from './components/TeamSelector';
 import { GroupTable } from './components/GroupTable';
 import { MatchCard } from './components/MatchCard';
@@ -301,7 +302,7 @@ export default function App() {
   // Shared Logic for R32 Pairings
   const calculateR32Pairings = (currentStandings: Record<string, GroupStanding>) => {
     // 1. Determine positions for each group
-    const positions: Record<string, string[]> = {}; 
+    const positions: Record<string, string[]> = {};
     const thirdPlaceTeams: GroupStanding[] = [];
 
     GROUPS.forEach(group => {
@@ -322,10 +323,16 @@ export default function App() {
          if (b.gd !== a.gd) return b.gd - a.gd;
          return b.gf - a.gf;
     });
-    
-    // The top 8 third place teams qualify
     const best8Thirds = thirdPlaceTeams.slice(0, 8);
-    
+
+    // 3. Build lookup key (sorted letters of qualifying groups) and look up official FIFA table
+    // Source: FIFA Regulations 2026 Annex C — all 495 combinations
+    const qualifyingGroupKey = best8Thirds
+        .map(t => GROUPS.find(g => g.teams.includes(t.teamId))!.id)
+        .sort()
+        .join('');
+    const officialAllocation = (THIRD_PLACE_ALLOCATION as Record<string, Record<string, string>>)[qualifyingGroupKey];
+
     // Helper: Map team code to ID
     const getTeam = (code: string): string => {
         const rank = parseInt(code[0]) - 1;
@@ -333,56 +340,41 @@ export default function App() {
         return positions[groupId][rank];
     };
 
-    // Helper: Pick a valid 3rd place team based on allowable groups
-    const usedThirds = new Set<string>();
-    const getThirdPlace = (allowableGroups: string[]): string => {
-        const candidate = best8Thirds.find(t => {
-            const group = GROUPS.find(g => g.teams.includes(t.teamId))?.id;
-            return group && allowableGroups.includes(group) && !usedThirds.has(t.teamId);
-        });
-
-        if (candidate) {
-            usedThirds.add(candidate.teamId);
-            return candidate.teamId;
-        }
-
-        const fallback = best8Thirds.find(t => !usedThirds.has(t.teamId));
-        if (fallback) {
-            usedThirds.add(fallback.teamId);
-            return fallback.teamId;
-        }
-        return 'TBD';
-    };
-
     const bracketPlan = [
         // Sunday 28
         { m: 73, h: '2A', a: '2B', date: {en: 'Jun 28', es: '28 de Jun'}, ven: 'Los Angeles Stadium' },
         // Monday 29
-        { m: 74, h: '1E', a: '3rd', groups: ['A','B','C','D','F'], date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Boston Stadium' },
+        { m: 74, h: '1E', a: '3rd', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Boston Stadium' },
         { m: 75, h: '1F', a: '2C', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Estadio Monterrey' },
-        { m: 76, h: '1C', a: '2F', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Houston Stadium' }, 
+        { m: 76, h: '1C', a: '2F', date: {en: 'Jun 29', es: '29 de Jun'}, ven: 'Houston Stadium' },
         // Tuesday 30
-        { m: 77, h: '1I', a: '3rd', groups: ['C','D','F','G','H'], date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'New York New Jersey Stadium' },
+        { m: 77, h: '1I', a: '3rd', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'New York New Jersey Stadium' },
         { m: 78, h: '2E', a: '2I', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'Dallas Stadium' },
-        { m: 79, h: '1A', a: '3rd', groups: ['C','E','F','H','I'], date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'Estadio Ciudad de México' },
+        { m: 79, h: '1A', a: '3rd', date: {en: 'Jun 30', es: '30 de Jun'}, ven: 'Estadio Ciudad de México' },
         // Wednesday 1
-        { m: 80, h: '1L', a: '3rd', groups: ['E','H','I','J','K'], date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Atlanta Stadium' },
-        { m: 81, h: '1D', a: '3rd', groups: ['B','E','F','I','J'], date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'San Francisco Bay Area Stadium' },
-        { m: 82, h: '1G', a: '3rd', groups: ['A','E','H','I','J'], date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Seattle Stadium' },
+        { m: 80, h: '1L', a: '3rd', date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Atlanta Stadium' },
+        { m: 81, h: '1D', a: '3rd', date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'San Francisco Bay Area Stadium' },
+        { m: 82, h: '1G', a: '3rd', date: {en: 'Jul 1', es: '1 de Jul'}, ven: 'Seattle Stadium' },
         // Thursday 2
         { m: 83, h: '2K', a: '2L', date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'Toronto Stadium' },
         { m: 84, h: '1H', a: '2J', date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'Los Angeles Stadium' },
-        { m: 85, h: '1B', a: '3rd', groups: ['E','F','G','I','J'], date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'BC Place Vancouver' },
+        { m: 85, h: '1B', a: '3rd', date: {en: 'Jul 2', es: '2 de Jul'}, ven: 'BC Place Vancouver' },
         // Friday 3
         { m: 86, h: '1J', a: '2H', date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Miami Stadium' },
-        { m: 87, h: '1K', a: '3rd', groups: ['D','E','I','J','L'], date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Kansas City Stadium' },
+        { m: 87, h: '1K', a: '3rd', date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Kansas City Stadium' },
         { m: 88, h: '2D', a: '2G', date: {en: 'Jul 3', es: '3 de Jul'}, ven: 'Dallas Stadium' },
     ];
 
     return bracketPlan.map(p => ({
         id: `M${p.m}`,
         homeTeamId: getTeam(p.h),
-        awayTeamId: p.a === '3rd' ? getThirdPlace(p.groups || []) : getTeam(p.a)
+        awayTeamId: (() => {
+            if (p.a !== '3rd') return getTeam(p.a);
+            if (!officialAllocation) return 'TBD';
+            // p.h is the slot key (e.g. '1E', '1I') — used directly as index in Annex C table
+            const groupId = officialAllocation[p.h];
+            return groupId ? positions[groupId][2] : 'TBD';
+        })()
     }));
   };
 
